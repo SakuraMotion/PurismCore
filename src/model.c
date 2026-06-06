@@ -73,15 +73,15 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
    * in real mode.  In dry-run mode, psm__arena_alloc
    * returns NULL so assignment is skipped.
    */
-#define psm__alloc_field(field, T, n) { \
+#define psm__alloc_field(field, T, n) do { \
     void *_p = psm__arena_alloc(arena, \
         psm__arena_safe_mul(arena, sizeof(T), (n))); \
     if (_p) (field) = (T *)_p; \
-  }
-#define psm__alloc_field_size(field, T, size) { \
+  } while (0)
+#define psm__alloc_field_size(field, T, size) do { \
     void *_p = psm__arena_alloc(arena, (size)); \
     if (_p) (field) = (T *)_p; \
-  }
+  } while (0)
 
 #define MAX_COMB(pc) ((psm__u32)1 << (pc))
 
@@ -184,7 +184,12 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   }
 
   /* Model struct - must be allocated first */
-  struct psm__model *m = PSM__ARENA_NEW(arena, struct psm__model, 1);
+  struct psm__model dummy, *m;
+  m = PSM__ARENA_NEW(arena, struct psm__model, 1);
+  if (!m) {
+    memset(&dummy, 0, sizeof(dummy));
+    m = &dummy;
+  }
 
   /* Parts */
   psm__alloc_field(m->parts.items, struct psm__part, cnt->parts);
@@ -552,7 +557,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     }
   }
 
-  return m;
+  return m == &dummy ? NULL : m;
 }
 
 
