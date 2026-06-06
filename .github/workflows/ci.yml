@@ -16,9 +16,6 @@ jobs:
       - name: Build (v6)
         run: make static-lib shared-lib
 
-      - name: Build (v5)
-        run: make static-lib-v5
-
       - name: Build tools
         run: make stageplay moc3info
 
