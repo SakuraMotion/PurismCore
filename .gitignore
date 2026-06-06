@@ -1,0 +1,34 @@
+# Build output
+build/
+
+# Distribution output
+dist/*
+!dist/.gitkeep
+
+# Test data
+testdata/*
+!testdata/.gitkeep
+!testdata/moc3
+!testdata/moc3/3d8e869a678a1dac.moc3
+!testdata/ref
+!testdata/ref/3d8e869a678a1dac_*.txt
+
+# Object files and libraries
+*.o
+*.a
+*.obj
+*.lib
+*.so
+*.dylib
+*.dll
+
+# Editor/IDE
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

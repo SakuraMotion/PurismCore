@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (v6)
+        run: make static-lib shared-lib
+
+      - name: Build (v5)
+        run: make static-lib-v5
+
+      - name: Build tools
+        run: make stageplay moc3info
+
+      - name: Unit tests
+        run: make unit
+
+      - name: Integration tests
+        run: make test
+
+  cross-build:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    strategy:
+      matrix:
+        target:
+          - linux-x64
+          - linux-arm64
+          - macos-x64
+          - macos-arm64
+          - win-x64
+          - win-x86
+          - win-arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      - name: Cross-build (${{ matrix.target }})
+        run: ./scripts/zig-build.sh ${{ matrix.target }} --both
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: build/${{ matrix.target }}/
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: cross-build
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      - name: Install lipo (Linux)
+        run: |
+          curl -sL https://github.com/konoui/lipo/releases/download/v0.9.4/lipo_linux_amd64 \
+            -o /usr/local/bin/lipo
+          chmod +x /usr/local/bin/lipo
+
+      - name: Build distribution
+        run: ./scripts/build-dist.sh
+
+      - name: Generate bundle
+        run: make bundle
+
+      - name: Package
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          mv dist/sdk "dist/PurismCore-${tag}"
+          cp dist/PurismCoreBundle.h "dist/PurismCoreBundle-${tag}.h"
+          cd dist && zip -r "PurismCore-${tag}.zip" "PurismCore-${tag}"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/PurismCore-*.zip
+            dist/PurismCoreBundle-*.h
+          generate_release_notes: true

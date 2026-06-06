@@ -1,0 +1,10 @@
+prefix=@PREFIX@
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: PurismCore@ABI_SUFFIX@
+Description: Live2D Cubism Core compatible library (@ABI@ ABI)
+Version: 1.0.1
+Cflags: -I${includedir}
+Libs: -L${libdir} -lPurismCore@ABI_SUFFIX@
+Libs.private: -lm

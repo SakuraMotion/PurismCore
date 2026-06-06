@@ -1,0 +1,76 @@
+V	6	0	1	0	6
+C	3508	4960	1754	2480	3508
+PC	32
+P	0	ParamAngleY	0	-30	30	0
+P	1	ParamAngleX	0	-30	30	0
+P	2	ParamAngleZ	0	-30	30	0
+P	3	Hair1	0	-1	1	0
+P	4	Hair2	0	-1	1	0
+P	5	ParamEyeLOpen	1	0	1	1
+P	6	ParamEyeLSmile	0	0	1	0
+P	7	ParamEyeROpen	1	0	1	1
+P	8	ParamEyeRSmile	0	0	1	0
+P	9	ParamEyeBallX	0	-1	1	0
+P	10	ParamEyeBallY	0	-1	1	0
+P	11	ParamBrowLY	0	-1	1	0
+P	12	ParamBrowRY	0	-1	1	0
+P	13	ParamBrowLX	0	-1	1	0
+P	14	ParamBrowRX	0	-1	1	0
+P	15	ParamBrowLAngle	0	-1	1	0
+P	16	ParamBrowRAngle	0	-1	1	0
+P	17	ParamBrowLForm	0	-1	1	0
+P	18	ParamBrowRForm	0	-1	1	0
+P	19	ParamMouthForm	0	-1	1	0
+P	20	ParamMouthOpenY	0	0	1	0
+P	21	ParamCheek	0	0	1	0
+P	22	ParamBodyAngleX	0	-10	10	0
+P	23	ParamBodyAngleY	0	-10	10	0
+P	24	ParamBodyAngleZ	0	-10	10	0
+P	25	ParamBreath	0	0	1	0
+P	26	ParamHairFront	0	-1	1	0
+P	27	ParamHairSide	0	-1	1	0
+P	28	ParamHairBack	0	-1	1	0
+P	29	MouseToggle	0	0	1	0
+P	30	MouseX	0	-1	1	0
+P	31	MouseY	0	-1	1	0
+TC	10
+T	0	Part2	1	-1
+T	1	Part	1	-1
+T	2	R	1	-1
+T	3	L	1	-1
+T	4	Mouth	1	-1
+T	5	Head	1	-1
+T	6	Eyes	1	2
+T	7	Eyes2	1	3
+T	8	Down	1	4
+T	9	Up	1	4
+DC	29
+D	0	ArtMesh2	1	21	500	18	0
+D	1	ArtMesh3	1	20	500	72	0
+D	2	Eyebrow	1	24	500	59	0
+D	3	ArtMesh0	1	23	500	57	0
+D	4	ArtMesh1	1	22	500	38	0
+D	5	ArtMesh6	1	16	500	19	0
+D	6	ArtMesh7	1	15	500	85	0
+D	7	Eyerow	1	19	500	56	0
+D	8	ArtMesh4	1	18	500	64	0
+D	9	ArtMesh5	1	17	500	15	0
+D	10	ArtMesh8	1	12	500	90	0
+D	11	ArtMesh9	1	10	500	93	0
+D	12	ArtMesh10	1	9	500	16	0
+D	13	ArtMesh11	1	8	500	15	0
+D	14	Tongue	1	7	500	36	0
+D	15	In	1	6	500	39	0
+D	16	ArtMesh13	1	5	500	99	0
+D	17	ArtMesh	1	27	500	303	0
+D	18	Nose	1	14	500	28	0
+D	19	ArtMesh14	1	3	500	258	0
+D	20	ArtMesh15	1	0	500	397	0
+D	21	Line	1	11	500	64	0
+D	22	Line2	1	13	500	59	0
+D	23	Color	1	26	500	453	0
+D	24	Neck	1	4	500	52	0
+D	25	ArtMesh16	1	2	500	4	0
+D	26	ArtMesh12	0.639216	25	500	80	2
+D	27	AAA	5e-05	28	500	280	0
+D	28	ArtMesh17	5e-05	1	500	397	0
