@@ -44,11 +44,13 @@ LIB_SHARED = build/libPurismCore$(ABI_SUFFIX).so
 RC_OBJ =
 endif
 
-all: $(LIB_A) $(LIB_SHARED)
+all: static-lib shared-lib
 
+static-lib: $(LIB_A)
 $(LIB_A): $(OBJ) | build
 	$(AR) rcs $@ $^
 
+shared-lib: $(LIB_SHARED)
 $(LIB_SHARED): $(OBJ) $(RC_OBJ) | build
 	$(CC) -shared -o $@ $^ $(LDFLAGS) -lm
 

@@ -21,6 +21,7 @@ Please see the table below for official support:
 | arm64 | ✓       | ✓     | ✓     | ✓   | ✓       | -           |
 | wasm32| -       | -     | -     | -   | -       | ?           |
 | wasm64| -       | -     | -     | -   | -       | ?           |
+
 <sup>\*The iOS simulator is fully supported.</sup>
 
 A `?` indicates that we have not tested on that platform. Purism Core should,
