@@ -25,6 +25,11 @@ extern "C" {
 /* PSM_TRUE_VERSION is the actual Purism Core implementation version. */
 #define PSM_TRUE_VERSION 0x01000001L
 
+/* CSM_CORE_WIN32_DLL is an alias for PURISM_CORE_DLL. */
+#ifdef CSM_CORE_WIN32_DLL
+# define PURISM_CORE_DLL
+#endif
+
 /* PSMDEF specifies the linkage and attributes of public API functions. */
 #ifndef PSMDEF
 #  if defined(PURISM_CORE_STATIC)
