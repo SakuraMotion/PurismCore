@@ -184,11 +184,13 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   }
 
   /* Model struct - must be allocated first */
-  struct psm__model dummy, *m;
-  m = PSM__ARENA_NEW(arena, struct psm__model, 1);
-  if (!m) {
+  struct psm__model dummy, *m, *m2 = NULL;
+  m2 = PSM__ARENA_NEW(arena, struct psm__model, 1);
+  if (!m2) {
     memset(&dummy, 0, sizeof(dummy));
     m = &dummy;
+  } else {
+    m = m2;
   }
 
   /* Parts */
@@ -557,7 +559,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     }
   }
 
-  return m == &dummy ? NULL : m;
+  return m2;
 }
 
 
