@@ -19,12 +19,14 @@ struct psm__vec2 {
   psm__f32 x, y;
 };
 
-static inline struct psm__vec2 psm__v2(psm__f32 x, psm__f32 y)
+static inline struct psm__vec2
+psm__v2(psm__f32 x, psm__f32 y)
 {
   return (struct psm__vec2){x, y};
 }
 
-static inline struct psm__vec2 psm__v2_load(const psm__f32 *arr, psm__i32 idx)
+static inline struct psm__vec2
+psm__v2_load(const psm__f32 *arr, psm__i32 idx)
 {
   return (struct psm__vec2){arr[idx * 2], arr[idx * 2 + 1]};
 }
@@ -48,12 +50,14 @@ psm__v2_sub(struct psm__vec2 a, struct psm__vec2 b)
   return (struct psm__vec2){a.x - b.x, a.y - b.y};
 }
 
-static inline struct psm__vec2 psm__v2_scale(struct psm__vec2 v, psm__f32 s)
+static inline struct psm__vec2
+psm__v2_scale(struct psm__vec2 v, psm__f32 s)
 {
   return (struct psm__vec2){v.x * s, v.y * s};
 }
 
-static inline struct psm__vec2 psm__v2_neg(struct psm__vec2 v)
+static inline struct psm__vec2
+psm__v2_neg(struct psm__vec2 v)
 {
   return (struct psm__vec2){-v.x, -v.y};
 }
@@ -73,9 +77,8 @@ psm__v2_bary3(struct psm__vec2 a, struct psm__vec2 b, struct psm__vec2 c,
 }
 
 static inline struct psm__vec2
-psm__v2_bilinear(struct psm__vec2 p00,
-    struct psm__vec2 p10, struct psm__vec2 p01,
-    struct psm__vec2 p11, psm__f32 u, psm__f32 v)
+psm__v2_bilinear(struct psm__vec2 p00, struct psm__vec2 p10,
+    struct psm__vec2 p01, struct psm__vec2 p11, psm__f32 u, psm__f32 v)
 {
   psm__f32 inv_u = 1.0f - u;
   psm__f32 x0 = fmaf(u, p10.x, inv_u * p00.x),
@@ -86,12 +89,14 @@ psm__v2_bilinear(struct psm__vec2 p00,
   return (struct psm__vec2){fmaf(v, x1, inv_v * x0), fmaf(v, y1, inv_v * y0)};
 }
 
-static inline psm__f32 psm__clamp_f32(psm__f32 v, psm__f32 lo, psm__f32 hi)
+static inline psm__f32
+psm__clamp_f32(psm__f32 v, psm__f32 lo, psm__f32 hi)
 {
   return fminf(fmaxf(v, lo), hi);
 }
 
-static inline psm__f32 psm__clamp_f32_01(psm__f32 v)
+static inline psm__f32
+psm__clamp_f32_01(psm__f32 v)
 {
   return fminf(fmaxf(v, 0.0f), 1.0f);
 }
@@ -101,7 +106,8 @@ static inline psm__f32 psm__clamp_f32_01(psm__f32 v)
  * Note: (float)INT32_MAX rounds up to 2147483648.0f which overflows int32,
  * so use 2147483520.0f (largest float < 2^31).
  */
-static inline psm__i32 psm__f32_to_i32(psm__f32 v)
+static inline psm__i32
+psm__f32_to_i32(psm__f32 v)
 {
   return (v == v)
       ? (psm__i32)psm__clamp_f32(v, -2147483648.0f, 2147483520.0f) : 0;

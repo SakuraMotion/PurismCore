@@ -225,7 +225,7 @@ struct psm__key_pos_src {
 };
 
 struct psm__key_table_idx_src {
-  psm__i32 *index;
+  psm__i32 *idx;
 };
 
 struct psm__binding_src {
@@ -264,7 +264,7 @@ struct psm__draw_group_src {
 
 struct psm__draw_group_obj_src {
   psm__i32 *type;
-  psm__i32 *index;
+  psm__i32 *idx;
   psm__i32 *self_group_idx;
 };
 
@@ -482,7 +482,7 @@ struct psm__moc3_data_v53 {
   D(psm__f32, art_mesh_key_src.draw_order, art_mesh_keyforms) \
   D(psm__i32, art_mesh_key_src.key_pos_off, art_mesh_keyforms) \
   D(psm__f32, key_pos_src.xy, keyform_pos) \
-  D(psm__i32, key_table_idx_src.index, key_table_idx) \
+  D(psm__i32, key_table_idx_src.idx, key_table_idx) \
   D(psm__i32, binding_src.key_table_idx_off, bindings) \
   D(psm__i32, binding_src.key_table_idx_len, bindings) \
   D(psm__i32, key_table_src.keys_off, key_tables) \
@@ -497,7 +497,7 @@ struct psm__moc3_data_v53 {
   D(psm__i32, draw_group_src.max_order, draw_groups) \
   D(psm__i32, draw_group_src.min_order, draw_groups) \
   D(psm__i32, draw_group_obj_src.type, draw_items) \
-  D(psm__i32, draw_group_obj_src.index, draw_items) \
+  D(psm__i32, draw_group_obj_src.idx, draw_items) \
   D(psm__i32, draw_group_obj_src.self_group_idx, draw_items) \
   D(const char *, glue_src.id_runtime, glues) \
   D(struct psm__id, glue_src.id, glues) \

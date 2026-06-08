@@ -629,7 +629,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         continue;
 
       for (psm__i32 j = 0; j < bc; j++) {
-        psm__i32 idx = ms->key_table_idx_src.index[kt_off + j];
+        psm__i32 idx = ms->key_table_idx_src.idx[kt_off + j];
         PSM__FAIL(!psm__valid_idx(idx, cnt->key_tables),
             PSM__ERR_FILE_CORRUPT, "binding[%d] ptr[%d] OOB: idx=%d max=%d",
             i, j, idx, cnt->key_tables);
@@ -951,7 +951,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     struct psm__draw_group_obj_src *os = &ms->draw_group_obj_src;
     if (cnt->draw_groups > 0 && m->draw_groups.groups &&
         gs->obj_total_count && gs->max_order && gs->min_order &&
-        gs->obj_off && os->type && os->index && os->self_group_idx) {
+        gs->obj_off && os->type && os->idx && os->self_group_idx) {
       for (psm__i32 i = 0; i < cnt->draw_groups; i++) {
         struct psm__draw_group *grp = &m->draw_groups.groups[i];
         psm__i32 max_order = gs->max_order[i];
@@ -973,7 +973,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
           for (psm__i32 j = 0; j < grp->count; j++) {
             struct psm__draw_item *item = &grp->items[j];
             item->object_type = os->type[begin_idx + j];
-            item->object_idx = os->index[begin_idx + j];
+            item->object_idx = os->idx[begin_idx + j];
             item->group_idx = os->self_group_idx[begin_idx + j];
             item->draw_order = 0;
           }

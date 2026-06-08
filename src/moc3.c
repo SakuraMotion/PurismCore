@@ -324,7 +324,7 @@ done_nonnull:
 
   /* Parameter binding index sources */
   for (psm__i32 i = 0; i < cnt->key_table_idx; i++) {
-    psm__model_check_index(src->key_table_idx_src.index,
+    psm__model_check_index(src->key_table_idx_src.idx,
         i, cnt->key_tables);
   }
 
@@ -388,12 +388,12 @@ done_nonnull:
   }
 
   /* Draw order group object sources */
-  if (src->draw_group_obj_src.type && src->draw_group_obj_src.index) {
+  if (src->draw_group_obj_src.type && src->draw_group_obj_src.idx) {
     for (psm__i32 i = 0; i < cnt->draw_items; i++) {
       psm__model_check_index_or_neg1(src->draw_group_obj_src.self_group_idx,
           i, cnt->draw_groups);
       psm__i32 t = src->draw_group_obj_src.type[i];
-      psm__i32 oi = src->draw_group_obj_src.index[i];
+      psm__i32 oi = src->draw_group_obj_src.idx[i];
       PSM__FAIL(t != 0 && t != 1, PSM__ERR_FILE_CORRUPT,
           "draw_item[%d]: bad type %d", i, t);
       psm__i32 max = t ? cnt->parts : cnt->art_meshes;
