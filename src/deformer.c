@@ -496,7 +496,7 @@ psm__gather_warps(struct psm__model *m)
     return;
 
   struct psm__warp_keydata *wk = &m->deformers.warps.keydata;
-  psm__i32 *kb = ms->warp_src.keyform_offset;
+  psm__i32 *kb = ms->warp_src.keyform_off;
   psm__i32 max_kf = ms->count_info->warp_kf;
 
   struct psm__binding *bindings[count];
@@ -509,13 +509,13 @@ psm__gather_warps(struct psm__model *m)
   psm__gather_scalars(count, bindings, kb, max_kf, &wk->interp, ch, 1);
 
   psm__gather_positions(count, bindings, kb, max_kf,
-      ms->key_pos_src.xy, ms->warp_key_src.key_pos_offset,
+      ms->key_pos_src.xy, ms->warp_key_src.key_pos_off,
       ms->count_info->kf_pos, wk->pos);
 
   if (m->source->header->version < csmMocVersion_42)
     return;
 
-  psm__i32 *ckb = ms->warp_src.key_color_offset;
+  psm__i32 *ckb = ms->warp_src.key_color_off;
   if (!ckb || !ms->kf_mul_color_src.r || !ms->kf_scr_color_src.r)
     return;
 
@@ -538,7 +538,7 @@ psm__gather_rotations(struct psm__model *m)
     return;
 
   struct psm__rotation_keydata *rk = &m->deformers.rotations.keydata;
-  psm__i32 *kb = ms->rotation_src.keyform_offset;
+  psm__i32 *kb = ms->rotation_src.keyform_off;
   psm__i32 max_kf = ms->count_info->rotation_kf;
 
   struct psm__binding *bindings[count];
@@ -561,7 +561,7 @@ psm__gather_rotations(struct psm__model *m)
   if (m->source->header->version < csmMocVersion_42)
     return;
 
-  psm__i32 *ckb = ms->rotation_src.key_color_offset;
+  psm__i32 *ckb = ms->rotation_src.key_color_off;
   if (!ckb || !ms->kf_mul_color_src.r || !ms->kf_scr_color_src.r)
     return;
 

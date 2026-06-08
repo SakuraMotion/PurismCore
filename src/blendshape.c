@@ -259,7 +259,7 @@ psm__blend_warps(struct psm__model *m)
   if (count <= 0 || !shapes)
     return;
 
-  psm__blend_positions(m, count, shapes, ms->warp_key_src.key_pos_offset,
+  psm__blend_positions(m, count, shapes, ms->warp_key_src.key_pos_off,
       m->deformers.warps.pos, ms->warp_src.vertex_count);
 
   if (m->source->header->version < csmMocVersion_50)
@@ -273,11 +273,11 @@ psm__blend_warps(struct psm__model *m)
 
   blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f);
 
-  psm__blend_colors(count, shapes, ms->warp_key_src.key_mul_color_offset,
+  psm__blend_colors(count, shapes, ms->warp_key_src.key_mul_color_off,
       ms->kf_mul_color_src.r, ms->kf_mul_color_src.g,
       ms->kf_mul_color_src.b, m->deformers.warps.mul_color);
 
-  psm__blend_colors(count, shapes, ms->warp_key_src.key_scr_color_offset,
+  psm__blend_colors(count, shapes, ms->warp_key_src.key_scr_color_off,
       ms->kf_scr_color_src.r, ms->kf_scr_color_src.g,
       ms->kf_scr_color_src.b, m->deformers.warps.scr_color);
 }
@@ -310,11 +310,11 @@ psm__blend_rotations(struct psm__model *m)
   if (op_src && calc_op)
     blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f);
 
-  psm__blend_colors(count, shapes, ms->rotation_key_src.key_mul_color_offset,
+  psm__blend_colors(count, shapes, ms->rotation_key_src.key_mul_color_off,
       ms->kf_mul_color_src.r, ms->kf_mul_color_src.g,
       ms->kf_mul_color_src.b, m->deformers.rotations.mul_color);
 
-  psm__blend_colors(count, shapes, ms->rotation_key_src.key_scr_color_offset,
+  psm__blend_colors(count, shapes, ms->rotation_key_src.key_scr_color_off,
       ms->kf_scr_color_src.r, ms->kf_scr_color_src.g,
       ms->kf_scr_color_src.b, m->deformers.rotations.scr_color);
 
@@ -341,7 +341,7 @@ psm__blend_art_meshes(struct psm__model *m)
   if (count <= 0 || !shapes)
     return;
 
-  psm__blend_positions(m, count, shapes, ms->art_mesh_key_src.key_pos_offset,
+  psm__blend_positions(m, count, shapes, ms->art_mesh_key_src.key_pos_off,
       m->art_meshes.pos, ms->art_mesh_src.vertex_count);
 
   if (m->source->header->version < csmMocVersion_50)
@@ -357,18 +357,18 @@ psm__blend_art_meshes(struct psm__model *m)
   if (op_src && calc_op)
     blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f);
 
-  if (ms->art_mesh_key_src.key_mul_color_offset &&
+  if (ms->art_mesh_key_src.key_mul_color_off &&
       ms->kf_mul_color_src.r && ms->kf_mul_color_src.g &&
       ms->kf_mul_color_src.b && m->art_meshes.mul_color) {
-    psm__blend_colors(count, shapes, ms->art_mesh_key_src.key_mul_color_offset,
+    psm__blend_colors(count, shapes, ms->art_mesh_key_src.key_mul_color_off,
         ms->kf_mul_color_src.r, ms->kf_mul_color_src.g,
         ms->kf_mul_color_src.b, m->art_meshes.mul_color);
   }
 
-  if (ms->art_mesh_key_src.key_scr_color_offset &&
+  if (ms->art_mesh_key_src.key_scr_color_off &&
       ms->kf_scr_color_src.r && ms->kf_scr_color_src.g &&
       ms->kf_scr_color_src.b && m->art_meshes.scr_color) {
-    psm__blend_colors(count, shapes, ms->art_mesh_key_src.key_scr_color_offset,
+    psm__blend_colors(count, shapes, ms->art_mesh_key_src.key_scr_color_off,
         ms->kf_scr_color_src.r, ms->kf_scr_color_src.g,
         ms->kf_scr_color_src.b, m->art_meshes.scr_color);
   }
@@ -416,11 +416,11 @@ psm__blend_offscreens(struct psm__model *m)
   if (op_src && calc_op)
     blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f);
 
-  psm__blend_colors(count, shapes, ms->offscreen_key_src.key_mul_color_offset,
+  psm__blend_colors(count, shapes, ms->offscreen_key_src.key_mul_color_off,
       ms->kf_mul_color_src.r, ms->kf_mul_color_src.g,
       ms->kf_mul_color_src.b, m->offscreens.mul_color);
 
-  psm__blend_colors(count, shapes, ms->offscreen_key_src.key_scr_color_offset,
+  psm__blend_colors(count, shapes, ms->offscreen_key_src.key_scr_color_off,
       ms->kf_scr_color_src.r, ms->kf_scr_color_src.g,
       ms->kf_scr_color_src.b, m->offscreens.scr_color);
 }

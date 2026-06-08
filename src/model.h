@@ -48,7 +48,7 @@ struct psm__blend_key_table {
 
 struct psm__binding {
   struct psm__key_table **key_tables;
-  psm__i32 key_table_count;
+  psm__i32 key_table_len;
   psm__i32 max_blend;
   psm__i32 blend_count;
   psm__i32 *keyform_idx;
@@ -252,7 +252,7 @@ struct psm__glue {
   struct psm__binding *binding;
   psm__i32 mesh_idx0;
   psm__i32 mesh_idx1;
-  psm__i32 glue_info_count;
+  psm__i32 glue_info_len;
   bool local_enable;
   psm__f32 *weights;
   psm__u16 *pos_idx;
@@ -303,9 +303,9 @@ struct psm__param {
   psm__f32 value;
   bool dirty;
   struct psm__key_table *key_tables;
-  psm__i32 key_table_count;
+  psm__i32 key_table_len;
   struct psm__blend_key_table *blend_key_tables;
-  psm__i32 blend_key_table_count;
+  psm__i32 blend_key_table_len;
 };
 
 struct psm__params {

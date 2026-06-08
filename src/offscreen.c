@@ -89,7 +89,7 @@ psm__gather_offscreens(struct psm__model *m)
   }
 
   /* Colors */
-  psm__i32 *col_begin = ms->offscreen_key_src.key_mul_color_offset;
+  psm__i32 *col_begin = ms->offscreen_key_src.key_mul_color_off;
   psm__f32 *mr = ms->kf_mul_color_src.r;
   psm__f32 *mg = ms->kf_mul_color_src.g;
   psm__f32 *mb = ms->kf_mul_color_src.b;
@@ -186,7 +186,7 @@ csmGetOffscreenMaskCounts(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
   const struct psm__sections *ms = m->source->sections;
-  return ms->offscreen_src.mask_count;
+  return ms->offscreen_src.mask_len;
 }
 
 PSMDEF const int **

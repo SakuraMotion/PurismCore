@@ -77,10 +77,10 @@ psm__sort_render_order(struct psm__model *m)
   struct psm__sections *ms = m->source->sections;
   struct psm__count_info *cnt = ms->count_info;
 
-  if (cnt->draw_groups > 0 && ms->draw_group_src.obj_count &&
+  if (cnt->draw_groups > 0 && ms->draw_group_src.obj_len &&
       ms->draw_group_src.max_order && ms->draw_group_src.min_order) {
     for (psm__i32 i = 0; i < cnt->draw_groups; i++) {
-      psm__i32 gc = ms->draw_group_src.obj_count[i];
+      psm__i32 gc = ms->draw_group_src.obj_len[i];
       psm__i32 hi = ms->draw_group_src.max_order[i];
       psm__i32 lo = ms->draw_group_src.min_order[i];
       psm__i32 lv = psm__safe_order_level(hi, lo);

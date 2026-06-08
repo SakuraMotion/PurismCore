@@ -53,7 +53,7 @@ psm__gather_art_meshes(struct psm__model *m)
   if (!meshes)
     return;
 
-  psm__i32 *kb = ms->art_mesh_src.keyform_offset;
+  psm__i32 *kb = ms->art_mesh_src.keyform_off;
   psm__i32 max_kf = ms->count_info->art_mesh_kf;
   struct psm__art_mesh_keydata *kd = &m->art_meshes.keydata;
 
@@ -68,13 +68,13 @@ psm__gather_art_meshes(struct psm__model *m)
   psm__gather_scalars(count, bindings, kb, max_kf, &kd->interp, ch, 2);
 
   psm__gather_positions(count, bindings, kb, max_kf,
-      ms->key_pos_src.xy, ms->art_mesh_key_src.key_pos_offset,
+      ms->key_pos_src.xy, ms->art_mesh_key_src.key_pos_off,
       ms->count_info->kf_pos, kd->pos);
 
   if (m->source->header->version < csmMocVersion_42)
     return;
 
-  psm__i32 *kcb = ms->art_mesh_src.key_color_offset;
+  psm__i32 *kcb = ms->art_mesh_src.key_color_off;
   if (!kcb || !ms->kf_mul_color_src.r || !ms->kf_scr_color_src.r)
     return;
 
@@ -211,7 +211,7 @@ csmGetDrawableMaskCounts(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
   struct psm__sections *ms = m->source->sections;
-  return ms->art_mesh_src.mask_count;
+  return ms->art_mesh_src.mask_len;
 }
 
 PSMDEF const int **
@@ -250,7 +250,7 @@ csmGetDrawableIndexCounts(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
   struct psm__sections *ms = m->source->sections;
-  return ms->art_mesh_src.indices_count;
+  return ms->art_mesh_src.indices_len;
 }
 
 PSMDEF const unsigned short **

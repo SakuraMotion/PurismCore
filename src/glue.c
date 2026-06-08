@@ -26,7 +26,7 @@ psm__gather_glues(struct psm__model *m)
   if (!items)
     return;
   struct psm__sections *ms = m->source->sections;
-  psm__i32 *keyform_begin_idx = ms->glue_src.keyform_offset;
+  psm__i32 *keyform_begin_idx = ms->glue_src.keyform_off;
   psm__f32 *intensity_src = ms->glue_key_src.intensity;
   if (!keyform_begin_idx || !intensity_src)
     return;
@@ -58,7 +58,7 @@ psm__apply_glues(struct psm__model *m)
 
   for (psm__i32 gi = 0; gi < count; gi++) {
     struct psm__glue *glue = &items[gi];
-    psm__i32 ic = glue->glue_info_count;
+    psm__i32 ic = glue->glue_info_len;
     if (ic <= 0)
       continue;
 

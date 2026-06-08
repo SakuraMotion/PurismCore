@@ -159,7 +159,7 @@ psm__resolve_key_tables(struct psm__model *m)
        * Unchanged parameter: clear dirty flags on all its bindings
        * so downstream keyform updates don't re-evaluate them.
        */
-      psm__i32 bc = param->key_table_count;
+      psm__i32 bc = param->key_table_len;
       struct psm__key_table *bs = param->key_tables;
       if (bs) {
         for (psm__i32 j = 0; j < bc; j++) {
@@ -170,7 +170,7 @@ psm__resolve_key_tables(struct psm__model *m)
       continue;
     }
 
-    psm__i32 binding_count = param->key_table_count;
+    psm__i32 binding_count = param->key_table_len;
     struct psm__key_table *bindings = param->key_tables;
     if (!bindings || binding_count <= 0)
       continue;
@@ -228,7 +228,7 @@ psm__resolve_blend_key_tables(struct psm__model *m)
     if (params[param_i].type != csmParameterType_BlendShape)
       continue;
 
-    psm__i32 bs_count = params[param_i].blend_key_table_count;
+    psm__i32 bs_count = params[param_i].blend_key_table_len;
     if (bs_count <= 0)
       continue;
 
@@ -294,7 +294,7 @@ psm__resolve_bindings(struct psm__model *m)
   struct psm__key_table *pb_end = pb_base + m->key_tables.count;
 
   for (psm__i32 bi = 0; bi < count; bi++) {
-    psm__i32 binding_count = binds[bi].key_table_count;
+    psm__i32 binding_count = binds[bi].key_table_len;
     struct psm__key_table **bindings = binds[bi].key_tables;
 
     bool idx_dirty = false;
