@@ -131,7 +131,7 @@ extract_one(const char *path, const char *pfx)
   int warp_found = 0;
   for (int i = 0; i < w->count && !warp_found; i++) {
     int row = w->items[i].row;
-    int col = w->items[i].column;
+    int col = w->items[i].col;
     int vc = (row + 1) * (col + 1);
     if (vc > 36 || !w->pos[i])
       continue;
