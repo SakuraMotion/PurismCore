@@ -386,7 +386,7 @@ psm__apply_rotation(struct psm__model *m, psm__i32 di)
 
     psm__f32 scale = 1.0f;
     psm__i32 iter;
-    for (iter = 0; iter < 10; iter++) {
+    for (iter = 0; iter < 16; iter++) {
       struct psm__vec2 tp = psm__v2(origin.x, origin.y + scale * dir_delta);
       struct psm__vec2 tt = psm__deformer_transform_point(m, pi, tp);
       struct psm__vec2 d = psm__v2_sub(tt, t_origin);

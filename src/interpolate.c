@@ -172,8 +172,8 @@ PSM__DEF void
 psm__interp_parts(struct psm__model *m)
 {
   struct psm__interp *ip = &m->parts.keydata.interp;
-  psm__interp_i32(ip, m->parts.keydata.draw_order,
-      m->parts.draw_order, m->parts.enable);
+  psm__interp_i32(ip, m->parts.keydata.draw_order, m->parts.draw_order,
+      m->parts.enable);
 }
 
 PSM__DEF void
@@ -245,8 +245,8 @@ psm__interp_glues(struct psm__model *m)
   struct psm__glues *g = &m->glues;
   if (g->count <= 0 || !g->keydata.intensity || !g->intensity)
     return;
-  psm__interp_f32(&g->keydata.interp,
-      g->keydata.intensity, g->intensity, 1, NULL);
+  psm__interp_f32(&g->keydata.interp, g->keydata.intensity, g->intensity, 1,
+      NULL);
 }
 
 PSM__DEF void

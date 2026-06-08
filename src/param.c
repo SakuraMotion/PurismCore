@@ -108,14 +108,14 @@ psm__resolve_params(struct psm__params *parameters)
   psm__f32 *input_value = parameters->input_value;
 
   for (psm__i32 i = 0; i < count; i++) {
-    psm__f32 userland_value = input_value[i];
+    psm__f32 user_value = input_value[i];
     psm__f32 new_value;
 
     if (params[i].repeat) {
       psm__f32 range_min = params[i].range[0],
-                    range_length = params[i].range_length;
+               range_length = params[i].range_length;
 
-      psm__f32 normalized = (userland_value - range_min) / range_length;
+      psm__f32 normalized = (user_value - range_min) / range_length;
       psm__f32 wrapped = normalized - floorf(normalized);
       new_value = wrapped * range_length + range_min;
 
@@ -127,7 +127,7 @@ psm__resolve_params(struct psm__params *parameters)
       }
     } else {
       psm__f32 range_min = params[i].range[0], range_max = params[i].range[1];
-      new_value = psm__clamp_f32(userland_value, range_min, range_max);
+      new_value = psm__clamp_f32(user_value, range_min, range_max);
 
       if (params[i].value != new_value) {
         params[i].value = new_value;
