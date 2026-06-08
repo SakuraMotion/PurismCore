@@ -51,7 +51,7 @@ psm__gather_offscreens(struct psm__model *m)
   if (!opa_src)
     return;
 
-  psm__i32 max_kf = ms->count_info->offscreen_kf;
+  psm__i32 max_keyforms = ms->count_info->offscreen_keyforms;
   struct psm__offscreen_keydata *kd = &m->offscreens.keydata;
   psm__i32 off = 0;
 
@@ -74,7 +74,7 @@ psm__gather_offscreens(struct psm__model *m)
       if (ki != -1) {
         for (psm__i32 j = 0; j < nc; j++) {
           psm__i32 idx = b->keyform_idx[j] + ki;
-          if ((psm__u32)idx >= (psm__u32)max_kf)
+          if ((psm__u32)idx >= (psm__u32)max_keyforms)
             continue;
           kd->opacity[off + j] = opa_src[idx];
         }
@@ -90,17 +90,17 @@ psm__gather_offscreens(struct psm__model *m)
 
   /* Colors */
   psm__i32 *col_begin = ms->offscreen_key_src.key_mul_color_off;
-  psm__f32 *mr = ms->kf_mul_color_src.r;
-  psm__f32 *mg = ms->kf_mul_color_src.g;
-  psm__f32 *mb = ms->kf_mul_color_src.b;
-  psm__f32 *sr = ms->kf_scr_color_src.r;
-  psm__f32 *sg = ms->kf_scr_color_src.g;
-  psm__f32 *sb = ms->kf_scr_color_src.b;
+  psm__f32 *mr = ms->keyform_mul_color_src.r;
+  psm__f32 *mg = ms->keyform_mul_color_src.g;
+  psm__f32 *mb = ms->keyform_mul_color_src.b;
+  psm__f32 *sr = ms->keyform_scr_color_src.r;
+  psm__f32 *sg = ms->keyform_scr_color_src.g;
+  psm__f32 *sb = ms->keyform_scr_color_src.b;
 
   if (!col_begin || !mr || !mg || !mb || !sr || !sg || !sb)
     return;
 
-  psm__i32 max_kf_colors = ms->count_info->kf_mul_colors;
+  psm__i32 max_kf_colors = ms->count_info->keyform_mul_colors;
   off = 0;
 
   for (psm__i32 i = 0; i < count; i++) {
@@ -116,7 +116,7 @@ psm__gather_offscreens(struct psm__model *m)
     psm__i32 nc = b->blend_count;
 
     if (ki >= 0 && nc > 0) {
-      if ((psm__u32)ki >= (psm__u32)max_kf)
+      if ((psm__u32)ki >= (psm__u32)max_keyforms)
         goto skip_color;
       psm__i32 cb = col_begin[ki];
       for (psm__i32 j = 0; j < nc; j++) {

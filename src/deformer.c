@@ -497,7 +497,7 @@ psm__gather_warps(struct psm__model *m)
 
   struct psm__warp_keydata *wk = &m->deformers.warps.keydata;
   psm__i32 *kb = ms->warp_src.keyform_off;
-  psm__i32 max_kf = ms->count_info->warp_kf;
+  psm__i32 max_keyforms = ms->count_info->warp_keyforms;
 
   struct psm__binding *bindings[count];
   for (psm__i32 i = 0; i < count; i++)
@@ -506,22 +506,22 @@ psm__gather_warps(struct psm__model *m)
   struct psm__gather_channel ch[] = {
     { ms->warp_key_src.opacity, wk->opacity },
   };
-  psm__gather_scalars(count, bindings, kb, max_kf, &wk->interp, ch, 1);
+  psm__gather_scalars(count, bindings, kb, max_keyforms, &wk->interp, ch, 1);
 
-  psm__gather_positions(count, bindings, kb, max_kf,
+  psm__gather_positions(count, bindings, kb, max_keyforms,
       ms->key_pos_src.xy, ms->warp_key_src.key_pos_off,
-      ms->count_info->kf_pos, wk->pos);
+      ms->count_info->keyform_pos, wk->pos);
 
   if (m->source->header->version < csmMocVersion_42)
     return;
 
   psm__i32 *ckb = ms->warp_src.key_color_off;
-  if (!ckb || !ms->kf_mul_color_src.r || !ms->kf_scr_color_src.r)
+  if (!ckb || !ms->keyform_mul_color_src.r || !ms->keyform_scr_color_src.r)
     return;
 
   psm__gather_colors(count, bindings, ckb,
-      ms->count_info->kf_mul_colors,
-      &ms->kf_mul_color_src, &ms->kf_scr_color_src,
+      ms->count_info->keyform_mul_colors,
+      &ms->keyform_mul_color_src, &ms->keyform_scr_color_src,
       &wk->mul_color, &wk->scr_color);
 }
 
@@ -539,7 +539,7 @@ psm__gather_rotations(struct psm__model *m)
 
   struct psm__rotation_keydata *rk = &m->deformers.rotations.keydata;
   psm__i32 *kb = ms->rotation_src.keyform_off;
-  psm__i32 max_kf = ms->count_info->rotation_kf;
+  psm__i32 max_keyforms = ms->count_info->rotation_keyforms;
 
   struct psm__binding *bindings[count];
   for (psm__i32 i = 0; i < count; i++)
@@ -552,9 +552,9 @@ psm__gather_rotations(struct psm__model *m)
     { ms->rotation_key_src.origin_y, rk->origin_y },
     { ms->rotation_key_src.scale,    rk->scale },
   };
-  psm__gather_scalars(count, bindings, kb, max_kf, &rk->interp, ch, 5);
+  psm__gather_scalars(count, bindings, kb, max_keyforms, &rk->interp, ch, 5);
 
-  psm__gather_reflect(count, bindings, kb, max_kf,
+  psm__gather_reflect(count, bindings, kb, max_keyforms,
       ms->rotation_key_src.reflect_x, ms->rotation_key_src.reflect_y,
       m->deformers.rotations.reflect_x, m->deformers.rotations.reflect_y);
 
@@ -562,12 +562,12 @@ psm__gather_rotations(struct psm__model *m)
     return;
 
   psm__i32 *ckb = ms->rotation_src.key_color_off;
-  if (!ckb || !ms->kf_mul_color_src.r || !ms->kf_scr_color_src.r)
+  if (!ckb || !ms->keyform_mul_color_src.r || !ms->keyform_scr_color_src.r)
     return;
 
   psm__gather_colors(count, bindings, ckb,
-      ms->count_info->kf_mul_colors,
-      &ms->kf_mul_color_src, &ms->kf_scr_color_src,
+      ms->count_info->keyform_mul_colors,
+      &ms->keyform_mul_color_src, &ms->keyform_scr_color_src,
       &rk->mul_color, &rk->scr_color);
 }
 

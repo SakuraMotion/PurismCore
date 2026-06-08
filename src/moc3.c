@@ -118,9 +118,9 @@ psm__verify_count_info(const struct psm__count_info *cnt)
       cnt->art_meshes < 0 || cnt->parameters < 0 ||
       cnt->bindings < 0 || cnt->key_tables < 0 ||
       cnt->keys < 0 || cnt->uvs < 0 || cnt->indices < 0 || cnt->masks < 0 ||
-      cnt->glues < 0 || cnt->kf_pos < 0 || cnt->part_kf < 0 ||
-      cnt->warp_kf < 0 || cnt->rotation_kf < 0 ||
-      cnt->art_mesh_kf < 0 || cnt->glue_kf < 0,
+      cnt->glues < 0 || cnt->keyform_pos < 0 || cnt->part_keyforms < 0 ||
+      cnt->warp_keyforms < 0 || cnt->rotation_keyforms < 0 ||
+      cnt->art_mesh_keyforms < 0 || cnt->glue_keyforms < 0,
       PSM__ERR_FILE_CORRUPT, "invalid count values");
 
   PSM__FAILM(((psm__u32)cnt->warps + (psm__u32)cnt->rotations) !=
@@ -180,7 +180,7 @@ done_nonnull:
    * 2^(param_binding_count) which is the actual range
    * accessed at runtime via blend_count indexing.
    */
-#define psm__check_key_combo(obj_src, kf_total, obj_len) \
+#define psm__check_key_combo(obj_src, keyform_total, obj_len) \
   for (psm__i32 _i = 0; _i < (obj_len); _i++) { \
     psm__i32 _bi = (obj_src).binding_idx[_i]; \
     if (_bi < 0 || _bi >= cnt->bindings) continue; \
@@ -188,21 +188,21 @@ done_nonnull:
         src->binding_src.key_table_idx_len[_bi], 0, PSM__MAX_KEY_TABLES); \
     psm__i32 _mc = 1 << _pc; \
     psm__i32 _kb = (obj_src).keyform_off[_i]; \
-    PSM__FAIL(!psm__valid_range(_kb, _mc, (kf_total)), \
+    PSM__FAIL(!psm__valid_range(_kb, _mc, (keyform_total)), \
         PSM__ERR_FILE_CORRUPT, \
         "%s[%d] keyform_off=%d max_blend=%d total=%d", \
-        #obj_src, _i, _kb, _mc, (kf_total)); \
+        #obj_src, _i, _kb, _mc, (keyform_total)); \
   }
 
   /* Part sources */
   for (psm__i32 i = 0; i < cnt->parts; i++) {
     psm__model_check_index(src->part_src.binding_idx, i, cnt->bindings);
     psm__model_check_range(src->part_src.keyform_off,
-        src->part_src.key_len, i, cnt->part_kf);
+        src->part_src.key_len, i, cnt->part_keyforms);
     psm__model_check_index_or_neg1(
         src->part_src.parent_part_idx, i, cnt->parts);
   }
-  psm__check_key_combo(src->part_src, cnt->part_kf, cnt->parts)
+  psm__check_key_combo(src->part_src, cnt->part_keyforms, cnt->parts)
 
   /* Deformer sources */
   for (psm__i32 i = 0; i < cnt->deformers; i++) {
@@ -240,7 +240,7 @@ done_nonnull:
     psm__model_check_index(src->warp_src.binding_idx,
         i, cnt->bindings);
     psm__model_check_range(src->warp_src.keyform_off,
-        src->warp_src.key_len, i, cnt->warp_kf);
+        src->warp_src.key_len, i, cnt->warp_keyforms);
     psm__i32 row = src->warp_src.row[i];
     psm__i32 col = src->warp_src.column[i];
     psm__i32 vc = src->warp_src.vertex_count[i];
@@ -251,7 +251,7 @@ done_nonnull:
         "warp[%d] vert_count=%d expected=%u", i, vc, (unsigned)expect);
   }
 
-  psm__check_key_combo(src->warp_src, cnt->warp_kf, cnt->warps)
+  psm__check_key_combo(src->warp_src, cnt->warp_keyforms, cnt->warps)
 
   /* Warp deformer keyform positions */
   for (psm__i32 i = 0; i < cnt->warps; i++) {
@@ -261,9 +261,9 @@ done_nonnull:
     for (psm__i32 j = 0; j < count; j++) {
       psm__i32 pb = src->warp_key_src.key_pos_off[begin + j];
       PSM__FAIL(pb < 0 || (psm__u32)pb + (psm__u32)vc >
-              (psm__u32)cnt->kf_pos, PSM__ERR_FILE_CORRUPT,
+              (psm__u32)cnt->keyform_pos, PSM__ERR_FILE_CORRUPT,
           "warp[%d] kf[%d] pos_begin=%d vc=%d max=%d",
-          i, j, pb, vc, cnt->kf_pos);
+          i, j, pb, vc, cnt->keyform_pos);
     }
   }
 
@@ -271,16 +271,16 @@ done_nonnull:
   for (psm__i32 i = 0; i < cnt->rotations; i++) {
     psm__model_check_index(src->rotation_src.binding_idx, i, cnt->bindings);
     psm__model_check_range(src->rotation_src.keyform_off,
-        src->rotation_src.key_len, i, cnt->rotation_kf);
+        src->rotation_src.key_len, i, cnt->rotation_keyforms);
   }
 
-  psm__check_key_combo(src->rotation_src, cnt->rotation_kf, cnt->rotations)
+  psm__check_key_combo(src->rotation_src, cnt->rotation_keyforms, cnt->rotations)
 
   /* Art mesh sources */
   for (psm__i32 i = 0; i < cnt->art_meshes; i++) {
     psm__model_check_index(src->art_mesh_src.binding_idx, i, cnt->bindings);
     psm__model_check_range(src->art_mesh_src.keyform_off,
-        src->art_mesh_src.key_len, i, cnt->art_mesh_kf);
+        src->art_mesh_src.key_len, i, cnt->art_mesh_keyforms);
     psm__model_check_index_or_neg1(
         src->art_mesh_src.parent_part_idx, i, cnt->parts);
     psm__model_check_index_or_neg1(src->art_mesh_src.parent_deformer_idx,
@@ -299,12 +299,12 @@ done_nonnull:
         src->art_mesh_src.mask_len, i, cnt->masks);
   }
 
-  psm__check_key_combo(src->art_mesh_src, cnt->art_mesh_kf, cnt->art_meshes)
+  psm__check_key_combo(src->art_mesh_src, cnt->art_mesh_keyforms, cnt->art_meshes)
 
   /* Art mesh keyform position indices */
-  for (psm__i32 i = 0; i < cnt->art_mesh_kf; i++) {
+  for (psm__i32 i = 0; i < cnt->art_mesh_keyforms; i++) {
     psm__model_check_index(src->art_mesh_key_src.key_pos_off,
-        i, cnt->kf_pos);
+        i, cnt->keyform_pos);
   }
 
   /* Parameter sources */
@@ -340,13 +340,13 @@ done_nonnull:
         src->mask_src.art_mesh_idx, i, cnt->art_meshes);
   }
 
-  psm__check_key_combo(src->glue_src, cnt->glue_kf, cnt->glues)
+  psm__check_key_combo(src->glue_src, cnt->glue_keyforms, cnt->glues)
 
   /* Glue sources */
   for (psm__i32 i = 0; i < cnt->glues; i++) {
     psm__model_check_index(src->glue_src.binding_idx, i, cnt->bindings);
     psm__model_check_range(src->glue_src.keyform_off,
-        src->glue_src.key_len, i, cnt->glue_kf);
+        src->glue_src.key_len, i, cnt->glue_keyforms);
     psm__model_check_index(src->glue_src.art_mesh_index_a, i, cnt->art_meshes);
     psm__model_check_index(src->glue_src.art_mesh_index_b, i, cnt->art_meshes);
     psm__model_check_range(src->glue_src.info_off,
@@ -408,19 +408,19 @@ done_nonnull:
   /* Warp deformer color indices */
   for (psm__i32 i = 0; i < cnt->warps; i++) {
     psm__model_check_range(src->warp_src.key_color_off,
-        src->warp_src.key_len, i, cnt->kf_mul_colors);
+        src->warp_src.key_len, i, cnt->keyform_mul_colors);
   }
 
   /* Rotation deformer color indices */
   for (psm__i32 i = 0; i < cnt->rotations; i++) {
     psm__model_check_range(src->rotation_src.key_color_off,
-        src->rotation_src.key_len, i, cnt->kf_mul_colors);
+        src->rotation_src.key_len, i, cnt->keyform_mul_colors);
   }
 
   /* Art mesh color indices */
   for (psm__i32 i = 0; i < cnt->art_meshes; i++) {
     psm__model_check_range(src->art_mesh_src.key_color_off,
-        src->art_mesh_src.key_len, i, cnt->kf_mul_colors);
+        src->art_mesh_src.key_len, i, cnt->keyform_mul_colors);
   }
 
   /* Parameter extension sources */

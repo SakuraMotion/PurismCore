@@ -54,7 +54,7 @@ psm__gather_art_meshes(struct psm__model *m)
     return;
 
   psm__i32 *kb = ms->art_mesh_src.keyform_off;
-  psm__i32 max_kf = ms->count_info->art_mesh_kf;
+  psm__i32 max_keyforms = ms->count_info->art_mesh_keyforms;
   struct psm__art_mesh_keydata *kd = &m->art_meshes.keydata;
 
   struct psm__binding *bindings[count];
@@ -65,22 +65,22 @@ psm__gather_art_meshes(struct psm__model *m)
     { ms->art_mesh_key_src.opacity,    kd->opacity },
     { ms->art_mesh_key_src.draw_order, kd->draw_order },
   };
-  psm__gather_scalars(count, bindings, kb, max_kf, &kd->interp, ch, 2);
+  psm__gather_scalars(count, bindings, kb, max_keyforms, &kd->interp, ch, 2);
 
-  psm__gather_positions(count, bindings, kb, max_kf,
+  psm__gather_positions(count, bindings, kb, max_keyforms,
       ms->key_pos_src.xy, ms->art_mesh_key_src.key_pos_off,
-      ms->count_info->kf_pos, kd->pos);
+      ms->count_info->keyform_pos, kd->pos);
 
   if (m->source->header->version < csmMocVersion_42)
     return;
 
   psm__i32 *kcb = ms->art_mesh_src.key_color_off;
-  if (!kcb || !ms->kf_mul_color_src.r || !ms->kf_scr_color_src.r)
+  if (!kcb || !ms->keyform_mul_color_src.r || !ms->keyform_scr_color_src.r)
     return;
 
   psm__gather_colors(count, bindings, kcb,
-      ms->count_info->kf_mul_colors,
-      &ms->kf_mul_color_src, &ms->kf_scr_color_src,
+      ms->count_info->keyform_mul_colors,
+      &ms->keyform_mul_color_src, &ms->keyform_scr_color_src,
       &kd->mul_color, &kd->scr_color);
 }
 

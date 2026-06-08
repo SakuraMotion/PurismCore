@@ -16,7 +16,7 @@
 
 static inline psm__f32
 psm__blend_shape_interp_f32(const struct psm__blend_binding *binding,
-    const psm__f32 *kf_src)
+    const psm__f32 *keyform_src)
 {
   psm__i32 blend_count = binding->blend_count;
   psm__i32 begin = binding->key_src_offset;
@@ -27,14 +27,14 @@ psm__blend_shape_interp_f32(const struct psm__blend_binding *binding,
     return 0.0f;
   case 1: {
     psm__i32 idx0 = binding->keyform_idx[0] + begin;
-    value = kf_src[idx0] * binding->weights[0];
+    value = keyform_src[idx0] * binding->weights[0];
     break;
   }
   case 2: {
     psm__i32 idx0 = binding->keyform_idx[0] + begin;
     psm__i32 idx1 = binding->keyform_idx[1] + begin;
-    value = kf_src[idx0] * binding->weights[0]
-          + kf_src[idx1] * binding->weights[1];
+    value = keyform_src[idx0] * binding->weights[0]
+          + keyform_src[idx1] * binding->weights[1];
     break;
   }
   default:
@@ -47,7 +47,7 @@ psm__blend_shape_interp_f32(const struct psm__blend_binding *binding,
 
 static void
 blend_scalar_f32(psm__i32 count, const struct psm__blend_shape *shapes,
-    psm__f32 *values, const psm__f32 *kf_src, psm__f32 lo, psm__f32 hi)
+    psm__f32 *values, const psm__f32 *keyform_src, psm__f32 lo, psm__f32 hi)
 {
   for (psm__i32 i = 0; i < count; i++) {
     psm__i32 ti = shapes[i].target_idx;
@@ -57,7 +57,7 @@ blend_scalar_f32(psm__i32 count, const struct psm__blend_shape *shapes,
     struct psm__blend_binding *binds = shapes[i].bindings;
     if (bc > 0 && binds) {
       for (psm__i32 j = 0; j < bc; j++)
-        value += psm__blend_shape_interp_f32(&binds[j], kf_src);
+        value += psm__blend_shape_interp_f32(&binds[j], keyform_src);
     }
 
     values[ti] = psm__clamp_f32(value, lo, hi);
@@ -66,7 +66,7 @@ blend_scalar_f32(psm__i32 count, const struct psm__blend_shape *shapes,
 
 static void
 blend_scalar_i32(psm__i32 count, const struct psm__blend_shape *shapes,
-    psm__i32 *values, const psm__f32 *kf_src)
+    psm__i32 *values, const psm__f32 *keyform_src)
 {
   for (psm__i32 i = 0; i < count; i++) {
     psm__i32 ti = shapes[i].target_idx;
@@ -76,7 +76,7 @@ blend_scalar_i32(psm__i32 count, const struct psm__blend_shape *shapes,
     struct psm__blend_binding *binds = shapes[i].bindings;
     if (bc > 0 && binds) {
       for (psm__i32 j = 0; j < bc; j++)
-        value += psm__blend_shape_interp_f32(&binds[j], kf_src);
+        value += psm__blend_shape_interp_f32(&binds[j], keyform_src);
     }
 
     psm__f32 rounded = value + 0.001f;
@@ -87,12 +87,12 @@ blend_scalar_i32(psm__i32 count, const struct psm__blend_shape *shapes,
 
 static void
 psm__blend_positions(const struct psm__model *m, psm__i32 count,
-    const struct psm__blend_shape *shapes, const psm__i32 *kf_pos_begin,
+    const struct psm__blend_shape *shapes, const psm__i32 *keyform_pos_off,
     psm__f32 **out_positions, const psm__i32 *vertex_counts)
 {
   if (count <= 0)
     return;
-  if (!shapes || !kf_pos_begin || !out_positions || !vertex_counts)
+  if (!shapes || !keyform_pos_off || !out_positions || !vertex_counts)
     return;
 
   struct psm__sections *ms = m->source->sections;
@@ -127,7 +127,7 @@ psm__blend_positions(const struct psm__model *m, psm__i32 count,
       switch (blend_count) {
       case 1: {
         psm__i32 ki = binds[j].keyform_idx[0] + begin;
-        psm__i32 pb = kf_pos_begin[ki];
+        psm__i32 pb = keyform_pos_off[ki];
         psm__f32 *p0 = &pos_xy[pb];
         psm__f32 w0 = binds[j].weights[0];
         for (psm__i32 k = 0; k < pc; k++)
@@ -137,8 +137,8 @@ psm__blend_positions(const struct psm__model *m, psm__i32 count,
       case 2: {
         psm__i32 ki0 = binds[j].keyform_idx[0] + begin;
         psm__i32 ki1 = binds[j].keyform_idx[1] + begin;
-        psm__i32 pb0 = kf_pos_begin[ki0];
-        psm__i32 pb1 = kf_pos_begin[ki1];
+        psm__i32 pb0 = keyform_pos_off[ki0];
+        psm__i32 pb1 = keyform_pos_off[ki1];
         psm__f32 *p0 = &pos_xy[pb0];
         psm__f32 *p1 = &pos_xy[pb1];
         psm__f32 w0 = binds[j].weights[0];
@@ -157,13 +157,13 @@ psm__blend_positions(const struct psm__model *m, psm__i32 count,
 
 static void
 psm__blend_colors(psm__i32 count, const struct psm__blend_shape *shapes,
-    const psm__i32 *kf_color_begin,
+    const psm__i32 *keyform_color_off,
     const psm__f32 *src_r, const psm__f32 *src_g, const psm__f32 *src_b,
     psm__f32 *out)
 {
   if (count <= 0)
     return;
-  if (!shapes || !kf_color_begin || !src_r || !src_g || !src_b || !out)
+  if (!shapes || !keyform_color_off || !src_r || !src_g || !src_b || !out)
     return;
 
   for (psm__i32 i = 0; i < count; i++) {
@@ -185,7 +185,7 @@ psm__blend_colors(psm__i32 count, const struct psm__blend_shape *shapes,
         switch (blend_count) {
         case 1: {
           psm__i32 ki = binds[j].keyform_idx[0] + begin;
-          psm__i32 ci = kf_color_begin[ki];
+          psm__i32 ci = keyform_color_off[ki];
           psm__f32 w0 = binds[j].weights[0];
           r = src_r[ci] * w0;
           g = src_g[ci] * w0;
@@ -195,8 +195,8 @@ psm__blend_colors(psm__i32 count, const struct psm__blend_shape *shapes,
         case 2: {
           psm__i32 ki0 = binds[j].keyform_idx[0] + begin;
           psm__i32 ki1 = binds[j].keyform_idx[1] + begin;
-          psm__i32 ci0 = kf_color_begin[ki0];
-          psm__i32 ci1 = kf_color_begin[ki1];
+          psm__i32 ci0 = keyform_color_off[ki0];
+          psm__i32 ci1 = keyform_color_off[ki1];
           psm__f32 w0 = binds[j].weights[0];
           psm__f32 w1 = binds[j].weights[1];
           r = w0 * src_r[ci0] + src_r[ci1] * w1;
@@ -274,12 +274,12 @@ psm__blend_warps(struct psm__model *m)
   blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f);
 
   psm__blend_colors(count, shapes, ms->warp_key_src.key_mul_color_off,
-      ms->kf_mul_color_src.r, ms->kf_mul_color_src.g,
-      ms->kf_mul_color_src.b, m->deformers.warps.mul_color);
+      ms->keyform_mul_color_src.r, ms->keyform_mul_color_src.g,
+      ms->keyform_mul_color_src.b, m->deformers.warps.mul_color);
 
   psm__blend_colors(count, shapes, ms->warp_key_src.key_scr_color_off,
-      ms->kf_scr_color_src.r, ms->kf_scr_color_src.g,
-      ms->kf_scr_color_src.b, m->deformers.warps.scr_color);
+      ms->keyform_scr_color_src.r, ms->keyform_scr_color_src.g,
+      ms->keyform_scr_color_src.b, m->deformers.warps.scr_color);
 }
 
 PSM__DEF void
@@ -311,12 +311,12 @@ psm__blend_rotations(struct psm__model *m)
     blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f);
 
   psm__blend_colors(count, shapes, ms->rotation_key_src.key_mul_color_off,
-      ms->kf_mul_color_src.r, ms->kf_mul_color_src.g,
-      ms->kf_mul_color_src.b, m->deformers.rotations.mul_color);
+      ms->keyform_mul_color_src.r, ms->keyform_mul_color_src.g,
+      ms->keyform_mul_color_src.b, m->deformers.rotations.mul_color);
 
   psm__blend_colors(count, shapes, ms->rotation_key_src.key_scr_color_off,
-      ms->kf_scr_color_src.r, ms->kf_scr_color_src.g,
-      ms->kf_scr_color_src.b, m->deformers.rotations.scr_color);
+      ms->keyform_scr_color_src.r, ms->keyform_scr_color_src.g,
+      ms->keyform_scr_color_src.b, m->deformers.rotations.scr_color);
 
   psm__f32 *ang_src = ms->rotation_key_src.angle;
   psm__f32 *calc_ang = m->deformers.rotations.angle;
@@ -358,19 +358,19 @@ psm__blend_art_meshes(struct psm__model *m)
     blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f);
 
   if (ms->art_mesh_key_src.key_mul_color_off &&
-      ms->kf_mul_color_src.r && ms->kf_mul_color_src.g &&
-      ms->kf_mul_color_src.b && m->art_meshes.mul_color) {
+      ms->keyform_mul_color_src.r && ms->keyform_mul_color_src.g &&
+      ms->keyform_mul_color_src.b && m->art_meshes.mul_color) {
     psm__blend_colors(count, shapes, ms->art_mesh_key_src.key_mul_color_off,
-        ms->kf_mul_color_src.r, ms->kf_mul_color_src.g,
-        ms->kf_mul_color_src.b, m->art_meshes.mul_color);
+        ms->keyform_mul_color_src.r, ms->keyform_mul_color_src.g,
+        ms->keyform_mul_color_src.b, m->art_meshes.mul_color);
   }
 
   if (ms->art_mesh_key_src.key_scr_color_off &&
-      ms->kf_scr_color_src.r && ms->kf_scr_color_src.g &&
-      ms->kf_scr_color_src.b && m->art_meshes.scr_color) {
+      ms->keyform_scr_color_src.r && ms->keyform_scr_color_src.g &&
+      ms->keyform_scr_color_src.b && m->art_meshes.scr_color) {
     psm__blend_colors(count, shapes, ms->art_mesh_key_src.key_scr_color_off,
-        ms->kf_scr_color_src.r, ms->kf_scr_color_src.g,
-        ms->kf_scr_color_src.b, m->art_meshes.scr_color);
+        ms->keyform_scr_color_src.r, ms->keyform_scr_color_src.g,
+        ms->keyform_scr_color_src.b, m->art_meshes.scr_color);
   }
 }
 
@@ -417,10 +417,10 @@ psm__blend_offscreens(struct psm__model *m)
     blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f);
 
   psm__blend_colors(count, shapes, ms->offscreen_key_src.key_mul_color_off,
-      ms->kf_mul_color_src.r, ms->kf_mul_color_src.g,
-      ms->kf_mul_color_src.b, m->offscreens.mul_color);
+      ms->keyform_mul_color_src.r, ms->keyform_mul_color_src.g,
+      ms->keyform_mul_color_src.b, m->offscreens.mul_color);
 
   psm__blend_colors(count, shapes, ms->offscreen_key_src.key_scr_color_off,
-      ms->kf_scr_color_src.r, ms->kf_scr_color_src.g,
-      ms->kf_scr_color_src.b, m->offscreens.scr_color);
+      ms->keyform_scr_color_src.r, ms->keyform_scr_color_src.g,
+      ms->keyform_scr_color_src.b, m->offscreens.scr_color);
 }

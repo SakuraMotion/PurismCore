@@ -30,7 +30,7 @@ psm__gather_scalars(
     psm__i32 count,
     struct psm__binding *const *bindings,
     const psm__i32 *keyform_offset,
-    psm__i32 max_kf,
+    psm__i32 max_keyforms,
     struct psm__interp *interp,
     const struct psm__gather_channel *channels,
     psm__i32 n_channels)
@@ -48,7 +48,7 @@ psm__gather_scalars(
     if (b->idx_dirty && cc > 0) {
       for (psm__i32 j = 0; j < cc; j++) {
         psm__i32 kfi = b->keyform_idx[j] + keyform_offset[i];
-        if ((psm__u32)kfi >= (psm__u32)max_kf)
+        if ((psm__u32)kfi >= (psm__u32)max_keyforms)
           continue;
         for (psm__i32 c = 0; c < n_channels; c++)
           channels[c].dst[offset + j] = channels[c].src[kfi];
@@ -73,7 +73,7 @@ psm__gather_positions(
     psm__i32 count,
     struct psm__binding *const *bindings,
     const psm__i32 *keyform_offset,
-    psm__i32 max_kf,
+    psm__i32 max_keyforms,
     const psm__f32 *pos_xy,
     const psm__i32 *pos_begin,
     psm__i32 max_pos,
@@ -87,7 +87,7 @@ psm__gather_positions(
     if (b->idx_dirty && b->blend_count > 0) {
       for (psm__i32 j = 0; j < b->blend_count; j++) {
         psm__i32 kfi = b->keyform_idx[j] + keyform_offset[i];
-        if ((psm__u32)kfi >= (psm__u32)max_kf)
+        if ((psm__u32)kfi >= (psm__u32)max_keyforms)
           continue;
         psm__i32 pi = pos_begin[kfi];
         if ((psm__u32)pi >= (psm__u32)max_pos)
@@ -147,7 +147,7 @@ psm__gather_reflect(
     psm__i32 count,
     struct psm__binding *const *bindings,
     const psm__i32 *keyform_offset,
-    psm__i32 max_kf,
+    psm__i32 max_keyforms,
     const psm__i32 *rfx_src,
     const psm__i32 *rfy_src,
     psm__i32 *rfx_dst,
@@ -158,7 +158,7 @@ psm__gather_reflect(
     if (!b || !b->idx_dirty || b->blend_count <= 0)
       continue;
     psm__i32 kfi = b->keyform_idx[0] + keyform_offset[i];
-    if ((psm__u32)kfi >= (psm__u32)max_kf)
+    if ((psm__u32)kfi >= (psm__u32)max_keyforms)
       continue;
     rfx_dst[i] = rfx_src[kfi];
     rfy_dst[i] = rfy_src[kfi];

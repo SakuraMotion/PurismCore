@@ -45,11 +45,11 @@ struct psm__count_info {
   psm__i32 rotations;
   psm__i32 art_meshes;
   psm__i32 parameters;
-  psm__i32 part_kf;
-  psm__i32 warp_kf;
-  psm__i32 rotation_kf;
-  psm__i32 art_mesh_kf;
-  psm__i32 kf_pos;
+  psm__i32 part_keyforms;
+  psm__i32 warp_keyforms;
+  psm__i32 rotation_keyforms;
+  psm__i32 art_mesh_keyforms;
+  psm__i32 keyform_pos;
   psm__i32 key_table_indices;
   psm__i32 bindings;
   psm__i32 key_tables;
@@ -61,9 +61,9 @@ struct psm__count_info {
   psm__i32 draw_items;
   psm__i32 glues;
   psm__i32 glue_info;
-  psm__i32 glue_kf;
-  psm__i32 kf_mul_colors;
-  psm__i32 kf_scr_colors;
+  psm__i32 glue_keyforms;
+  psm__i32 keyform_mul_colors;
+  psm__i32 keyform_scr_colors;
   psm__i32 blend_key_tables;
   psm__i32 blend_bindings;
   psm__i32 bs_warps;
@@ -75,7 +75,7 @@ struct psm__count_info {
   psm__i32 bs_rotations;
   psm__i32 bs_glues;
   psm__i32 offscreens;
-  psm__i32 offscreen_kf;
+  psm__i32 offscreen_keyforms;
   psm__i32 bs_offscreens;
   psm__i32 _reserved;
 };
@@ -382,8 +382,8 @@ struct psm__sections {
   struct psm__glue_info_src glue_info_src;
   struct psm__glue_key_src glue_key_src;
 
-  struct psm__key_color_src kf_mul_color_src;
-  struct psm__key_color_src kf_scr_color_src;
+  struct psm__key_color_src keyform_mul_color_src;
+  struct psm__key_color_src keyform_scr_color_src;
 
   struct psm__offscreen_src offscreen_src;
   struct psm__offscreen_key_src offscreen_key_src;
@@ -468,20 +468,20 @@ struct psm__moc3_data_v53 {
   D(psm__i32, param_src.decimal_places, parameters) \
   D(psm__i32, param_src.key_table_off, parameters) \
   D(psm__i32, param_src.key_table_len, parameters) \
-  D(psm__f32, part_key_src.draw_order, part_kf) \
-  D(psm__f32, warp_key_src.opacity, warp_kf) \
-  D(psm__i32, warp_key_src.key_pos_off, warp_kf) \
-  D(psm__f32, rotation_key_src.opacity, rotation_kf) \
-  D(psm__f32, rotation_key_src.angle, rotation_kf) \
-  D(psm__f32, rotation_key_src.origin_x, rotation_kf) \
-  D(psm__f32, rotation_key_src.origin_y, rotation_kf) \
-  D(psm__f32, rotation_key_src.scale, rotation_kf) \
-  D(psm__i32, rotation_key_src.reflect_x, rotation_kf) \
-  D(psm__i32, rotation_key_src.reflect_y, rotation_kf) \
-  D(psm__f32, art_mesh_key_src.opacity, art_mesh_kf) \
-  D(psm__f32, art_mesh_key_src.draw_order, art_mesh_kf) \
-  D(psm__i32, art_mesh_key_src.key_pos_off, art_mesh_kf) \
-  D(psm__f32, key_pos_src.xy, kf_pos) \
+  D(psm__f32, part_key_src.draw_order, part_keyforms) \
+  D(psm__f32, warp_key_src.opacity, warp_keyforms) \
+  D(psm__i32, warp_key_src.key_pos_off, warp_keyforms) \
+  D(psm__f32, rotation_key_src.opacity, rotation_keyforms) \
+  D(psm__f32, rotation_key_src.angle, rotation_keyforms) \
+  D(psm__f32, rotation_key_src.origin_x, rotation_keyforms) \
+  D(psm__f32, rotation_key_src.origin_y, rotation_keyforms) \
+  D(psm__f32, rotation_key_src.scale, rotation_keyforms) \
+  D(psm__i32, rotation_key_src.reflect_x, rotation_keyforms) \
+  D(psm__i32, rotation_key_src.reflect_y, rotation_keyforms) \
+  D(psm__f32, art_mesh_key_src.opacity, art_mesh_keyforms) \
+  D(psm__f32, art_mesh_key_src.draw_order, art_mesh_keyforms) \
+  D(psm__i32, art_mesh_key_src.key_pos_off, art_mesh_keyforms) \
+  D(psm__f32, key_pos_src.xy, keyform_pos) \
   D(psm__i32, key_table_idx_src.index, key_table_indices) \
   D(psm__i32, binding_src.key_table_idx_off, bindings) \
   D(psm__i32, binding_src.key_table_idx_len, bindings) \
@@ -510,7 +510,7 @@ struct psm__moc3_data_v53 {
   D(psm__i32, glue_src.info_len, glues) \
   D(psm__f32, glue_info_src.weight, glue_info) \
   D(psm__u16, glue_info_src.position_idx, glue_info) \
-  D(psm__f32, glue_key_src.intensity, glue_kf)
+  D(psm__f32, glue_key_src.intensity, glue_keyforms)
 
 #define PSM__SECTIONS_V33(S, D) \
   D(psm__i32, warp_src.quad_transform, warps)
@@ -522,12 +522,12 @@ struct psm__moc3_data_v53 {
   D(psm__i32, warp_src.key_color_off, warps) \
   D(psm__i32, rotation_src.key_color_off, rotations) \
   D(psm__i32, art_mesh_src.key_color_off, art_meshes) \
-  D(psm__f32, kf_mul_color_src.r, kf_mul_colors) \
-  D(psm__f32, kf_mul_color_src.g, kf_mul_colors) \
-  D(psm__f32, kf_mul_color_src.b, kf_mul_colors) \
-  D(psm__f32, kf_scr_color_src.r, kf_scr_colors) \
-  D(psm__f32, kf_scr_color_src.g, kf_scr_colors) \
-  D(psm__f32, kf_scr_color_src.b, kf_scr_colors) \
+  D(psm__f32, keyform_mul_color_src.r, keyform_mul_colors) \
+  D(psm__f32, keyform_mul_color_src.g, keyform_mul_colors) \
+  D(psm__f32, keyform_mul_color_src.b, keyform_mul_colors) \
+  D(psm__f32, keyform_scr_color_src.r, keyform_scr_colors) \
+  D(psm__f32, keyform_scr_color_src.g, keyform_scr_colors) \
+  D(psm__f32, keyform_scr_color_src.b, keyform_scr_colors) \
   D(psm__i32, param_src.type, parameters) \
   D(psm__i32, param_src.blend_key_table_off, parameters) \
   D(psm__i32, param_src.blend_key_table_len, parameters) \
@@ -553,12 +553,12 @@ struct psm__moc3_data_v53 {
   D(psm__f32, blend_constraint_val_src.weight, bs_constraint_vals)
 
 #define PSM__SECTIONS_V50(S, D) \
-  D(psm__i32, warp_key_src.key_mul_color_off, warp_kf) \
-  D(psm__i32, warp_key_src.key_scr_color_off, warp_kf) \
-  D(psm__i32, rotation_key_src.key_mul_color_off, rotation_kf) \
-  D(psm__i32, rotation_key_src.key_scr_color_off, rotation_kf) \
-  D(psm__i32, art_mesh_key_src.key_mul_color_off, art_mesh_kf) \
-  D(psm__i32, art_mesh_key_src.key_scr_color_off, art_mesh_kf) \
+  D(psm__i32, warp_key_src.key_mul_color_off, warp_keyforms) \
+  D(psm__i32, warp_key_src.key_scr_color_off, warp_keyforms) \
+  D(psm__i32, rotation_key_src.key_mul_color_off, rotation_keyforms) \
+  D(psm__i32, rotation_key_src.key_scr_color_off, rotation_keyforms) \
+  D(psm__i32, art_mesh_key_src.key_mul_color_off, art_mesh_keyforms) \
+  D(psm__i32, art_mesh_key_src.key_scr_color_off, art_mesh_keyforms) \
   D(psm__i32, bs_part_src.target_idx, bs_parts) \
   D(psm__i32, bs_part_src.bs_binding_off, bs_parts) \
   D(psm__i32, bs_part_src.bs_binding_len, bs_parts) \
@@ -578,10 +578,10 @@ struct psm__moc3_data_v53 {
   D(psm__i32, offscreen_src.blend_mode, offscreens) \
   D(psm__i32, offscreen_src.mask_off, offscreens) \
   D(psm__i32, offscreen_src.mask_len, offscreens) \
-  D(psm__i32, part_key_src.key_idx, part_kf) \
-  D(psm__f32, offscreen_key_src.opacity, offscreen_kf) \
-  D(psm__i32, offscreen_key_src.key_mul_color_off, offscreen_kf) \
-  D(psm__i32, offscreen_key_src.key_scr_color_off, offscreen_kf) \
+  D(psm__i32, part_key_src.key_idx, part_keyforms) \
+  D(psm__f32, offscreen_key_src.opacity, offscreen_keyforms) \
+  D(psm__i32, offscreen_key_src.key_mul_color_off, offscreen_keyforms) \
+  D(psm__i32, offscreen_key_src.key_scr_color_off, offscreen_keyforms) \
   D(psm__i32, bs_offscreen_src.target_idx, bs_offscreens) \
   D(psm__i32, bs_offscreen_src.bs_binding_off, bs_offscreens) \
   D(psm__i32, bs_offscreen_src.bs_binding_len, bs_offscreens)

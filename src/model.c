@@ -660,7 +660,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
       psm__i32 mc = binding->max_blend;
       psm__i32 kb = ms->part_src.keyform_off[i];
-      if (!psm__valid_range(kb, mc, cnt->part_kf)) {
+      if (!psm__valid_range(kb, mc, cnt->part_keyforms)) {
         part->binding = NULL;
         continue;
       }
@@ -763,7 +763,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
         psm__i32 mc = binding->max_blend;
         psm__i32 kb = ws->keyform_off[i];
-        if (!psm__valid_range(kb, mc, cnt->warp_kf)) {
+        if (!psm__valid_range(kb, mc, cnt->warp_keyforms)) {
           warp->binding = NULL;
           continue;
         }
@@ -793,7 +793,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
         psm__i32 mc = binding->max_blend;
         psm__i32 kb = rs->keyform_off[i];
-        if (!psm__valid_range(kb, mc, cnt->rotation_kf)) {
+        if (!psm__valid_range(kb, mc, cnt->rotation_keyforms)) {
           rot->binding = NULL;
           continue;
         }
@@ -852,7 +852,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
       psm__i32 mc = binding->max_blend;
       psm__i32 kb = ms->art_mesh_src.keyform_off[i];
-      if (!psm__valid_range(kb, mc, cnt->art_mesh_kf)) {
+      if (!psm__valid_range(kb, mc, cnt->art_mesh_keyforms)) {
         mesh->binding = NULL;
         continue;
       }
@@ -868,8 +868,8 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     struct psm__rotation_keydata *rk = &m->deformers.rotations.keydata;
     struct psm__art_mesh_keydata *ak = &m->art_meshes.keydata;
     {
-      struct psm__key_color_src *mc = &ms->kf_mul_color_src;
-      struct psm__key_color_src *sc = &ms->kf_scr_color_src;
+      struct psm__key_color_src *mc = &ms->keyform_mul_color_src;
+      struct psm__key_color_src *sc = &ms->keyform_scr_color_src;
 
       /* Warp deformer colors */
       if (mc->r && sc->r && wk->mul_color.r &&
@@ -878,16 +878,16 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         psm__i32 n = wk->interp.tmp_len;
         psm__i32 *mb = ms->warp_key_src.key_mul_color_off;
         psm__i32 *sb = ms->warp_key_src.key_scr_color_off;
-        if (n > cnt->warp_kf)
-          n = cnt->warp_kf;
+        if (n > cnt->warp_keyforms)
+          n = cnt->warp_keyforms;
         for (psm__i32 i = 0; i < n; i++) {
           psm__i32 mi = mb[i], si = sb[i];
-          if (psm__valid_idx(mi, cnt->kf_mul_colors)) {
+          if (psm__valid_idx(mi, cnt->keyform_mul_colors)) {
             wk->mul_color.r[i] = mc->r[mi];
             wk->mul_color.g[i] = mc->g[mi];
             wk->mul_color.b[i] = mc->b[mi];
           }
-          if (psm__valid_idx(si, cnt->kf_scr_colors)) {
+          if (psm__valid_idx(si, cnt->keyform_scr_colors)) {
             wk->scr_color.r[i] = sc->r[si];
             wk->scr_color.g[i] = sc->g[si];
             wk->scr_color.b[i] = sc->b[si];
@@ -902,16 +902,16 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         psm__i32 n = rk->interp.tmp_len;
         psm__i32 *mb = ms->rotation_key_src.key_mul_color_off;
         psm__i32 *sb = ms->rotation_key_src.key_scr_color_off;
-        if (n > cnt->rotation_kf)
-          n = cnt->rotation_kf;
+        if (n > cnt->rotation_keyforms)
+          n = cnt->rotation_keyforms;
         for (psm__i32 i = 0; i < n; i++) {
           psm__i32 mi = mb[i], si = sb[i];
-          if (psm__valid_idx(mi, cnt->kf_mul_colors)) {
+          if (psm__valid_idx(mi, cnt->keyform_mul_colors)) {
             rk->mul_color.r[i] = mc->r[mi];
             rk->mul_color.g[i] = mc->g[mi];
             rk->mul_color.b[i] = mc->b[mi];
           }
-          if (psm__valid_idx(si, cnt->kf_scr_colors)) {
+          if (psm__valid_idx(si, cnt->keyform_scr_colors)) {
             rk->scr_color.r[i] = sc->r[si];
             rk->scr_color.g[i] = sc->g[si];
             rk->scr_color.b[i] = sc->b[si];
@@ -926,16 +926,16 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         psm__i32 n = ak->interp.tmp_len;
         psm__i32 *mb = ms->art_mesh_key_src.key_mul_color_off;
         psm__i32 *sb = ms->art_mesh_key_src.key_scr_color_off;
-        if (n > cnt->art_mesh_kf)
-          n = cnt->art_mesh_kf;
+        if (n > cnt->art_mesh_keyforms)
+          n = cnt->art_mesh_keyforms;
         for (psm__i32 i = 0; i < n; i++) {
           psm__i32 mi = mb[i], si = sb[i];
-          if (psm__valid_idx(mi, cnt->kf_mul_colors)) {
+          if (psm__valid_idx(mi, cnt->keyform_mul_colors)) {
             ak->mul_color.r[i] = mc->r[mi];
             ak->mul_color.g[i] = mc->g[mi];
             ak->mul_color.b[i] = mc->b[mi];
           }
-          if (psm__valid_idx(si, cnt->kf_scr_colors)) {
+          if (psm__valid_idx(si, cnt->keyform_scr_colors)) {
             ak->scr_color.r[i] = sc->r[si];
             ak->scr_color.g[i] = sc->g[si];
             ak->scr_color.b[i] = sc->b[si];
@@ -1022,7 +1022,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
         psm__i32 mc = binding->max_blend;
         psm__i32 kb = gls->keyform_off[i];
-        if (!psm__valid_range(kb, mc, cnt->glue_kf)) {
+        if (!psm__valid_range(kb, mc, cnt->glue_keyforms)) {
           glue->binding = NULL;
           continue;
         }
@@ -1255,7 +1255,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
           surf->owner_enable = NULL;
 
         /* Set offscreen keyform index pointer */
-        if (os_key_idx && kbi >= 0 && kbi < cnt->part_kf) {
+        if (os_key_idx && kbi >= 0 && kbi < cnt->part_keyforms) {
           surf->keyform_idx = &os_key_idx[kbi];
         } else {
           surf->keyform_idx = NULL;
