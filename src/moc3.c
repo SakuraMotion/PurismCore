@@ -347,19 +347,19 @@ done_nonnull:
     psm__model_check_index(src->glue_src.binding_idx, i, cnt->bindings);
     psm__model_check_range(src->glue_src.keyform_off,
         src->glue_src.key_len, i, cnt->glue_keyforms);
-    psm__model_check_index(src->glue_src.art_mesh_index_a, i, cnt->art_meshes);
-    psm__model_check_index(src->glue_src.art_mesh_index_b, i, cnt->art_meshes);
+    psm__model_check_index(src->glue_src.art_mesh_idx_a, i, cnt->art_meshes);
+    psm__model_check_index(src->glue_src.art_mesh_idx_b, i, cnt->art_meshes);
     psm__model_check_range(src->glue_src.info_off,
         src->glue_src.info_len, i, cnt->glue_info);
   }
 
   /* Glue position indices */
   if (src->glue_src.info_off && src->glue_src.info_len &&
-      src->glue_src.art_mesh_index_a && src->glue_src.art_mesh_index_b &&
-      src->glue_info_src.position_idx && src->art_mesh_src.vertex_count) {
+      src->glue_src.art_mesh_idx_a && src->glue_src.art_mesh_idx_b &&
+      src->glue_info_src.pos_idx && src->art_mesh_src.vertex_count) {
     for (psm__i32 i = 0; i < cnt->glues; i++) {
-      psm__i32 m0 = src->glue_src.art_mesh_index_a[i];
-      psm__i32 m1 = src->glue_src.art_mesh_index_b[i];
+      psm__i32 m0 = src->glue_src.art_mesh_idx_a[i];
+      psm__i32 m1 = src->glue_src.art_mesh_idx_b[i];
       if (m0 < 0 || m0 >= cnt->art_meshes || m1 < 0 || m1 >= cnt->art_meshes)
         continue;
       psm__i32 vc0 = src->art_mesh_src.vertex_count[m0];
@@ -369,11 +369,11 @@ done_nonnull:
       if (ib < 0 || ic <= 0 || ib + ic > cnt->glue_info)
         continue;
       for (psm__i32 j = 0; j < ic; j += 2) {
-        psm__u16 p0 = src->glue_info_src.position_idx[ib + j];
+        psm__u16 p0 = src->glue_info_src.pos_idx[ib + j];
         PSM__FAIL(p0 >= (psm__u16)vc0, PSM__ERR_FILE_CORRUPT,
             "glue[%d] pos_idx[%d]=%u OOB (vc=%d)", i, j, p0, vc0);
         if (j + 1 < ic) {
-          psm__u16 p1 = src->glue_info_src.position_idx[ib + j + 1];
+          psm__u16 p1 = src->glue_info_src.pos_idx[ib + j + 1];
           PSM__FAIL(p1 >= (psm__u16)vc1, PSM__ERR_FILE_CORRUPT,
               "glue[%d] pos_idx[%d]=%u OOB (vc=%d)", i, j + 1, p1, vc1);
         }
@@ -896,7 +896,7 @@ skip_mask_processing:
       if (src->idx_src.idx && src->art_mesh_src.idx_off) {
         psm__i32 io = src->art_mesh_src.idx_off[i];
         if (psm__check_idx(io, cnt->idx))
-          src->art_mesh_src.position_idx_runtime[i] =
+          src->art_mesh_src.pos_idx_runtime[i] =
               &src->idx_src.idx[io];
       }
       if (src->mask_src.art_mesh_idx && src->art_mesh_src.mask_off) {

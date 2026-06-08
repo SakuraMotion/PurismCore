@@ -58,7 +58,7 @@ psm__apply_glues(struct psm__model *m)
 
   for (psm__i32 gi = 0; gi < count; gi++) {
     struct psm__glue *glue = &items[gi];
-    psm__i32 ic = glue->glue_info_len;
+    psm__i32 ic = glue->glue_info_count;
     if (ic <= 0)
       continue;
 

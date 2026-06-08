@@ -135,7 +135,7 @@ struct psm__rotation_src {
 struct psm__art_mesh_src {
   const char **id_runtime;
   const psm__f32 **uv_runtime;
-  const psm__u16 **position_idx_runtime;
+  const psm__u16 **pos_idx_runtime;
   const psm__i32 **drawable_mask_runtime;
   void *id;
   psm__i32 *binding_idx;
@@ -178,8 +178,8 @@ struct psm__glue_src {
   psm__i32 *binding_idx;
   psm__i32 *keyform_off;
   psm__i32 *key_len;
-  psm__i32 *art_mesh_index_a;
-  psm__i32 *art_mesh_index_b;
+  psm__i32 *art_mesh_idx_a;
+  psm__i32 *art_mesh_idx_b;
   psm__i32 *info_off;
   psm__i32 *info_len;
 };
@@ -270,7 +270,7 @@ struct psm__draw_group_obj_src {
 
 struct psm__glue_info_src {
   psm__f32 *weight;
-  psm__u16 *position_idx;
+  psm__u16 *pos_idx;
 };
 
 struct psm__param_keys_src {
@@ -441,7 +441,7 @@ struct psm__moc3_data_v53 {
   D(psm__f32, rotation_src.base_angle, rotations) \
   D(const char *, art_mesh_src.id_runtime, art_meshes) \
   D(const psm__f32 *, art_mesh_src.uv_runtime, art_meshes) \
-  D(const psm__u16 *, art_mesh_src.position_idx_runtime, art_meshes) \
+  D(const psm__u16 *, art_mesh_src.pos_idx_runtime, art_meshes) \
   D(const psm__i32 *, art_mesh_src.drawable_mask_runtime, art_meshes) \
   D(struct psm__id, art_mesh_src.id, art_meshes) \
   D(psm__i32, art_mesh_src.binding_idx, art_meshes) \
@@ -504,12 +504,12 @@ struct psm__moc3_data_v53 {
   D(psm__i32, glue_src.binding_idx, glues) \
   D(psm__i32, glue_src.keyform_off, glues) \
   D(psm__i32, glue_src.key_len, glues) \
-  D(psm__i32, glue_src.art_mesh_index_a, glues) \
-  D(psm__i32, glue_src.art_mesh_index_b, glues) \
+  D(psm__i32, glue_src.art_mesh_idx_a, glues) \
+  D(psm__i32, glue_src.art_mesh_idx_b, glues) \
   D(psm__i32, glue_src.info_off, glues) \
   D(psm__i32, glue_src.info_len, glues) \
   D(psm__f32, glue_info_src.weight, glue_info) \
-  D(psm__u16, glue_info_src.position_idx, glue_info) \
+  D(psm__u16, glue_info_src.pos_idx, glue_info) \
   D(psm__f32, glue_key_src.intensity, glue_keyforms)
 
 #define PSM__SECTIONS_V33(S, D) \

@@ -68,7 +68,7 @@ struct psm__blend_constraint {
 
 struct psm__blend_binding {
   struct psm__blend_key_table *key_table;
-  psm__i32 key_src_offset;
+  psm__i32 key_src_off;
   psm__i32 blend_count;
   psm__i32 keyform_idx[2];
   psm__f32 weights[2];
@@ -204,8 +204,8 @@ struct psm__art_meshes {
   struct psm__art_mesh_keydata keydata;
   bool *enable;
   bool state_changed;
-  psm__u8  *const_flags;
-  psm__u8  *change_flags;
+  psm__u8 *const_flags;
+  psm__u8 *change_flags;
   psm__i32 *blend_mode;
   psm__i32 *draw_order;
   psm__f32 **pos;
@@ -252,7 +252,7 @@ struct psm__glue {
   struct psm__binding *binding;
   psm__i32 mesh_idx0;
   psm__i32 mesh_idx1;
-  psm__i32 glue_info_len;
+  psm__i32 glue_info_count;
   bool local_enable;
   psm__f32 *weights;
   psm__u16 *pos_idx;

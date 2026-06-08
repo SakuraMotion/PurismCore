@@ -258,7 +258,7 @@ csmGetDrawableIndices(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
   struct psm__sections *ms = m->source->sections;
-  return (const unsigned short **)ms->art_mesh_src.position_idx_runtime;
+  return (const unsigned short **)ms->art_mesh_src.pos_idx_runtime;
 }
 
 PSMDEF const csmVector4 *

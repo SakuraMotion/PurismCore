@@ -988,9 +988,9 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     struct psm__glue_info_src *gis = &ms->glue_info_src;
     psm__i32 *max_combs = m->glues.keydata.interp.max_blend;
     if (cnt->glues > 0 && m->glues.items && m->bindings.items && max_combs &&
-        gls->binding_idx && gls->art_mesh_index_a &&
-        gls->art_mesh_index_b && gls->info_len && gls->info_off &&
-        gis->weight && gis->position_idx) {
+        gls->binding_idx && gls->art_mesh_idx_a &&
+        gls->art_mesh_idx_b && gls->info_len && gls->info_off &&
+        gis->weight && gis->pos_idx) {
       psm__i32 tmp_len = 0;
       for (psm__i32 i = 0; i < cnt->glues; i++) {
         struct psm__glue *glue = &m->glues.items[i];
@@ -1003,21 +1003,21 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         psm__i32 info_off = gls->info_off[i];
 
         glue->binding = binding;
-        glue->mesh_idx0 = gls->art_mesh_index_a[i];
-        glue->mesh_idx1 = gls->art_mesh_index_b[i];
-        glue->glue_info_len = gls->info_len[i];
+        glue->mesh_idx0 = gls->art_mesh_idx_a[i];
+        glue->mesh_idx1 = gls->art_mesh_idx_b[i];
+        glue->glue_info_count = gls->info_len[i];
 
-        if (!psm__valid_range(info_off, glue->glue_info_len,
+        if (!psm__valid_range(info_off, glue->glue_info_count,
                 cnt->glue_info)) {
           PSM__LOGF("glue[%d]: info range "
               "[%d, %d) OOB (max %d)", i, info_off,
-              info_off + glue->glue_info_len, cnt->glue_info);
+              info_off + glue->glue_info_count, cnt->glue_info);
           glue->weights = NULL;
           glue->pos_idx = NULL;
-          glue->glue_info_len = 0;
+          glue->glue_info_count = 0;
         } else {
           glue->weights = &gis->weight[info_off];
-          glue->pos_idx = &gis->position_idx[info_off];
+          glue->pos_idx = &gis->pos_idx[info_off];
         }
 
         psm__i32 mc = binding->max_blend;
@@ -1117,7 +1117,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
           bb->key_table = &m->blend_key_tables.items[bpi];
         else
           bb->key_table = NULL;
-        bb->key_src_offset = bb_src->key_bs_off[i];
+        bb->key_src_off = bb_src->key_bs_off[i];
         bb->blend_count = 0;
         bb->idx_dirty = 1;
         bb->weight_dirty = 1;

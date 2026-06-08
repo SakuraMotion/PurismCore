@@ -19,7 +19,7 @@ psm__blend_shape_interp_f32(const struct psm__blend_binding *binding,
     const psm__f32 *keyform_src)
 {
   psm__i32 blend_count = binding->blend_count;
-  psm__i32 begin = binding->key_src_offset;
+  psm__i32 begin = binding->key_src_off;
   psm__f32 value;
 
   switch (blend_count) {
@@ -121,7 +121,7 @@ psm__blend_positions(const struct psm__model *m, psm__i32 count,
       if (blend_count == 0)
         continue;
 
-      psm__i32 begin = binds[j].key_src_offset;
+      psm__i32 begin = binds[j].key_src_off;
       psm__f32 cw = binds[j].weight;
 
       switch (blend_count) {
@@ -178,7 +178,7 @@ psm__blend_colors(psm__i32 count, const struct psm__blend_shape *shapes,
         if (blend_count == 0)
           continue;
 
-        psm__i32 begin = binds[j].key_src_offset;
+        psm__i32 begin = binds[j].key_src_off;
         psm__f32 cw = binds[j].weight;
         psm__f32 r, g, b;
 
