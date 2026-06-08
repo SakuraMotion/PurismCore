@@ -289,9 +289,8 @@ psm__resolve_bindings(struct psm__model *m)
     return;
   bool force_update = m->force_update;
 
-  /* Get valid pointer range for parameter binding caches */
-  struct psm__key_table *pb_base = m->key_tables.items;
-  struct psm__key_table *pb_end = pb_base + m->key_tables.count;
+  struct psm__key_table *kt_base = m->key_tables.items;
+  struct psm__key_table *kt_end = kt_base + m->key_tables.count;
 
   for (psm__i32 bi = 0; bi < count; bi++) {
     psm__i32 binding_count = binds[bi].key_table_len;
@@ -314,7 +313,7 @@ psm__resolve_bindings(struct psm__model *m)
       struct psm__key_table *binding = bindings[i];
 
       /* Validate pointer is within expected range */
-      if (binding < pb_base || binding >= pb_end) {
+      if (binding < kt_base || binding >= kt_end) {
         out_of_range = true; /* corrupted ptr */
         break;
       }

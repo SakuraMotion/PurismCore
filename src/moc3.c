@@ -259,11 +259,11 @@ done_nonnull:
     psm__i32 count = src->warp_src.key_len[i];
     psm__i32 vc = src->warp_src.vertex_count[i];
     for (psm__i32 j = 0; j < count; j++) {
-      psm__i32 pb = src->warp_key_src.key_pos_off[begin + j];
-      PSM__FAIL(pb < 0 || (psm__u32)pb + (psm__u32)vc >
+      psm__i32 po = src->warp_key_src.key_pos_off[begin + j];
+      PSM__FAIL(po < 0 || (psm__u32)po + (psm__u32)vc >
               (psm__u32)cnt->keyform_pos, PSM__ERR_FILE_CORRUPT,
-          "warp[%d] kf[%d] pos_begin=%d vc=%d max=%d",
-          i, j, pb, vc, cnt->keyform_pos);
+          "warp[%d] kf[%d] pos_off=%d vc=%d max=%d",
+          i, j, po, vc, cnt->keyform_pos);
     }
   }
 
@@ -894,10 +894,10 @@ skip_mask_processing:
           src->art_mesh_src.uv_runtime[i] = &src->uv_src.xy[ub];
       }
       if (src->indices_src.index && src->art_mesh_src.indices_off) {
-        psm__i32 pb = src->art_mesh_src.indices_off[i];
-        if (psm__check_idx(pb, cnt->indices))
+        psm__i32 io = src->art_mesh_src.indices_off[i];
+        if (psm__check_idx(io, cnt->indices))
           src->art_mesh_src.position_idx_runtime[i] =
-              &src->indices_src.index[pb];
+              &src->indices_src.index[io];
       }
       if (src->mask_src.art_mesh_idx && src->art_mesh_src.mask_off) {
         psm__i32 mb2 = src->art_mesh_src.mask_off[i];

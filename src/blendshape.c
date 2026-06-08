@@ -127,8 +127,8 @@ psm__blend_positions(const struct psm__model *m, psm__i32 count,
       switch (blend_count) {
       case 1: {
         psm__i32 ki = binds[j].keyform_idx[0] + begin;
-        psm__i32 pb = keyform_pos_off[ki];
-        psm__f32 *p0 = &pos_xy[pb];
+        psm__i32 po = keyform_pos_off[ki];
+        psm__f32 *p0 = &pos_xy[po];
         psm__f32 w0 = binds[j].weights[0];
         for (psm__i32 k = 0; k < pc; k++)
           out[k] += p0[k] * w0 * cw;
@@ -137,10 +137,10 @@ psm__blend_positions(const struct psm__model *m, psm__i32 count,
       case 2: {
         psm__i32 ki0 = binds[j].keyform_idx[0] + begin;
         psm__i32 ki1 = binds[j].keyform_idx[1] + begin;
-        psm__i32 pb0 = keyform_pos_off[ki0];
-        psm__i32 pb1 = keyform_pos_off[ki1];
-        psm__f32 *p0 = &pos_xy[pb0];
-        psm__f32 *p1 = &pos_xy[pb1];
+        psm__i32 po0 = keyform_pos_off[ki0];
+        psm__i32 po1 = keyform_pos_off[ki1];
+        psm__f32 *p0 = &pos_xy[po0];
+        psm__f32 *p1 = &pos_xy[po1];
         psm__f32 w0 = binds[j].weights[0];
         psm__f32 w1 = binds[j].weights[1];
         for (psm__i32 k = 0; k < pc; k++)

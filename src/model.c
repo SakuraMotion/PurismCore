@@ -615,11 +615,11 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     for (psm__i32 i = 0; i < cnt->bindings; i++) {
       struct psm__binding *kc = &m->bindings.items[i];
       psm__i32 bc = ms->binding_src.key_table_idx_len[i];
-      psm__i32 pb = ms->binding_src.key_table_idx_off[i];
+      psm__i32 kt_off = ms->binding_src.key_table_idx_off[i];
 
-      PSM__FAIL(!psm__valid_range(pb, bc,
+      PSM__FAIL(!psm__valid_range(kt_off, bc,
               cnt->key_table_indices), PSM__ERR_FILE_CORRUPT,
-          "binding[%d] OOB: pb=%d bc=%d max=%d", i, pb, bc, cnt->key_table_indices);
+          "binding[%d] OOB: off=%d len=%d max=%d", i, kt_off, bc, cnt->key_table_indices);
 
       kc->idx_dirty = 1;
       kc->weight_dirty = 1;
@@ -629,7 +629,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         continue;
 
       for (psm__i32 j = 0; j < bc; j++) {
-        psm__i32 idx = ms->key_table_idx_src.index[pb + j];
+        psm__i32 idx = ms->key_table_idx_src.index[kt_off + j];
         PSM__FAIL(!psm__valid_idx(idx, cnt->key_tables),
             PSM__ERR_FILE_CORRUPT, "binding[%d] ptr[%d] OOB: idx=%d max=%d",
             i, j, idx, cnt->key_tables);
