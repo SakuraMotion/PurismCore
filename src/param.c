@@ -222,7 +222,7 @@ psm__resolve_blend_axes(struct psm__model *m)
   struct psm__param *params = m->params.items;
   if (!params)
     return;
-  psm__i32 force_update = m->force_update;
+  bool force_update = m->force_update;
 
   for (psm__i32 param_i = 0; param_i < param_count; param_i++) {
     if (params[param_i].type != csmParameterType_BlendShape)
@@ -287,7 +287,7 @@ psm__resolve_bindings(struct psm__model *m)
   struct psm__binding *binds = m->bindings.items;
   if (!binds)
     return;
-  psm__i32 force_update = m->force_update;
+  bool force_update = m->force_update;
 
   /* Get valid pointer range for parameter binding caches */
   struct psm__axis *pb_base = m->axes.items;
@@ -436,7 +436,7 @@ psm__resolve_blend_bindings(struct psm__model *m)
   struct psm__blend_binding *binds = m->blend_bindings.items;
   if (!binds)
     return;
-  psm__i32 force_update = m->force_update;
+  bool force_update = m->force_update;
 
   for (psm__i32 bi = 0; bi < count; bi++) {
     struct psm__blend_axis *binding = binds[bi].axis;
