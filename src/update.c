@@ -166,8 +166,8 @@ psm__update_model(struct psm__model *m)
   psm__save_flags(m);
 
   psm__resolve_params(&m->params);
-  psm__resolve_axes(m);
-  psm__resolve_blend_axes(m);
+  psm__resolve_key_tables(m);
+  psm__resolve_blend_key_tables(m);
   psm__resolve_bindings(m);
   psm__resolve_blend_bindings(m);
 

@@ -53,10 +53,10 @@ psm__gather_parts(struct psm__model *m)
   if (!items)
     return;
   struct psm__sections *ms = m->source->sections;
-  psm__i32 *keyform_offset = ms->part_src.keyform_offset;
+  psm__i32 *keyform_off = ms->part_src.keyform_off;
   psm__f32 *draw_order_src = ms->part_key_src.draw_order;
 
-  if (!keyform_offset || !draw_order_src)
+  if (!keyform_off || !draw_order_src)
     return;
 
   struct psm__binding *bindings[count];
@@ -66,8 +66,8 @@ psm__gather_parts(struct psm__model *m)
   struct psm__gather_channel ch[] = {
     { draw_order_src, m->parts.keydata.draw_order },
   };
-  psm__gather_scalars(count, bindings, keyform_offset,
-      ms->count_info->part_kf, &m->parts.keydata.interp, ch, 1);
+  psm__gather_scalars(count, bindings, keyform_off,
+      ms->count_info->part_keyforms, &m->parts.keydata.interp, ch, 1);
 }
 
 PSM__DEF void

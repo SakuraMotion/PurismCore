@@ -22,8 +22,8 @@ psm__interp_f32(struct psm__interp *interp, const psm__f32 *targets,
   if (!interp || !targets || !out)
     return;
 
-  psm__i32 obj_count = interp->object_count;
-  if (obj_count <= 0)
+  psm__i32 obj_len = interp->object_count;
+  if (obj_len <= 0)
     return;
 
   psm__i32 *max_comb = interp->max_blend;
@@ -46,7 +46,7 @@ psm__interp_f32(struct psm__interp *interp, const psm__f32 *targets,
   }
 
   psm__i32 off = 0;
-  for (psm__i32 i = 0; i < obj_count; i++) {
+  for (psm__i32 i = 0; i < obj_len; i++) {
     psm__i32 mc = max_comb[i];
     if (enable == NULL || enable[i]) {
       psm__i32 n = psm__clamp_i32(comb[i], 0, mc);
@@ -71,8 +71,8 @@ psm__interp_i32(struct psm__interp *interp, const psm__f32 *targets,
   if (!interp || !targets || !out)
     return;
 
-  psm__i32 obj_count = interp->object_count;
-  if (obj_count <= 0)
+  psm__i32 obj_len = interp->object_count;
+  if (obj_len <= 0)
     return;
 
   psm__i32 *max_comb = interp->max_blend;
@@ -90,7 +90,7 @@ psm__interp_i32(struct psm__interp *interp, const psm__f32 *targets,
   }
 
   psm__i32 off = 0;
-  for (psm__i32 i = 0; i < obj_count; i++) {
+  for (psm__i32 i = 0; i < obj_len; i++) {
     psm__i32 mc = max_comb[i];
     if (enable == NULL || enable[i]) {
       psm__i32 n = psm__clamp_i32(comb[i], 0, mc);
@@ -116,16 +116,16 @@ psm__interp_f32_array(struct psm__interp *interp,
   if (!interp || !targets || !out || !counts)
     return;
 
-  psm__i32 obj_count = interp->object_count;
+  psm__i32 obj_len = interp->object_count;
   psm__i32 *max_comb = interp->max_blend;
   psm__i32 *comb = interp->blend_count;
   psm__f32 *wt = interp->weights;
 
-  if (!max_comb || !comb || !wt || obj_count <= 0)
+  if (!max_comb || !comb || !wt || obj_len <= 0)
     return;
 
   psm__i32 off = 0;
-  for (psm__i32 i = 0; i < obj_count; i++) {
+  for (psm__i32 i = 0; i < obj_len; i++) {
     psm__i32 mc = max_comb[i];
     if (enable == NULL || enable[i]) {
       psm__i32 total = counts[i] * elem_count;
@@ -172,8 +172,8 @@ PSM__DEF void
 psm__interp_parts(struct psm__model *m)
 {
   struct psm__interp *ip = &m->parts.keydata.interp;
-  psm__interp_i32(ip, m->parts.keydata.draw_order,
-      m->parts.draw_order, m->parts.enable);
+  psm__interp_i32(ip, m->parts.keydata.draw_order, m->parts.draw_order,
+      m->parts.enable);
 }
 
 PSM__DEF void
@@ -245,8 +245,8 @@ psm__interp_glues(struct psm__model *m)
   struct psm__glues *g = &m->glues;
   if (g->count <= 0 || !g->keydata.intensity || !g->intensity)
     return;
-  psm__interp_f32(&g->keydata.interp,
-      g->keydata.intensity, g->intensity, 1, NULL);
+  psm__interp_f32(&g->keydata.interp, g->keydata.intensity, g->intensity, 1,
+      NULL);
 }
 
 PSM__DEF void

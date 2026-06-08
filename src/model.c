@@ -59,8 +59,8 @@ psm__safe_param_count(const struct psm__sections *src,
   psm__i32 bi = idx_arr[i];
   if (!psm__valid_idx(bi, cnt->bindings))
     return 0;
-  return psm__clamp_i32(src->binding_src.axis_idx_count[bi],
-      0, PSM__MAX_AXES);
+  return psm__clamp_i32(src->binding_src.key_table_idx_len[bi],
+      0, PSM__MAX_KEY_TABLES);
 }
 
 static struct psm__model *
@@ -130,10 +130,10 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   }
 
   psm__u32 kb_ptr_total = 0, kb_idx_total = 0;
-  if (cnt->bindings > 0 && src->binding_src.axis_idx_count) {
+  if (cnt->bindings > 0 && src->binding_src.key_table_idx_len) {
     for (psm__i32 i = 0; i < cnt->bindings; i++) {
-      psm__i32 pc = psm__clamp_i32(src->binding_src.axis_idx_count[i],
-          0, PSM__MAX_AXES);
+      psm__i32 pc = psm__clamp_i32(src->binding_src.key_table_idx_len[i],
+          0, PSM__MAX_KEY_TABLES);
       kb_ptr_total += pc;
       kb_idx_total += MAX_COMB(pc);
     }
@@ -149,10 +149,10 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   }
 
   psm__i32 do_max_count = 0, do_max_level = 0;
-  if (cnt->draw_groups > 0 && src->draw_group_src.obj_count &&
+  if (cnt->draw_groups > 0 && src->draw_group_src.obj_len &&
       src->draw_group_src.max_order && src->draw_group_src.min_order) {
     for (psm__i32 i = 0; i < cnt->draw_groups; i++) {
-      psm__i32 c = src->draw_group_src.obj_count[i];
+      psm__i32 c = src->draw_group_src.obj_len[i];
       psm__i32 mx = src->draw_group_src.max_order[i];
       psm__i32 mn = src->draw_group_src.min_order[i];
       psm__i32 lvl = psm__safe_order_level(mx, mn);
@@ -165,9 +165,9 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
 
   psm__u32 bs_constr_ptrs_total = 0;
   if (ver >= csmMocVersion_42 &&
-      src->blend_binding_src.bs_constraint_idx_count) {
+      src->blend_binding_src.bs_constraint_idx_len) {
     for (psm__i32 i = 0; i < cnt->blend_bindings; i++) {
-      bs_constr_ptrs_total += src->blend_binding_src.bs_constraint_idx_count[i];
+      bs_constr_ptrs_total += src->blend_binding_src.bs_constraint_idx_len[i];
     }
   }
 
@@ -313,13 +313,13 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   psm__alloc_field(m->params.input_value, psm__f32, cnt->parameters);
 
   /* Parameter bindings */
-  psm__alloc_field(m->axes.items, struct psm__axis,
-      cnt->axes);
+  psm__alloc_field(m->key_tables.items, struct psm__key_table,
+      cnt->key_tables);
 
   /* Keyform bindings */
   psm__alloc_field(m->bindings.items, struct psm__binding, cnt->bindings);
-  struct psm__axis **kb_ptrs = PSM__ARENA_NEW(
-      arena, struct psm__axis *, kb_ptr_total);
+  struct psm__key_table **kb_ptrs = PSM__ARENA_NEW(
+      arena, struct psm__key_table *, kb_ptr_total);
   psm__i32 *kb_indices = PSM__ARENA_NEW(arena, psm__i32, kb_idx_total);
   psm__f32 *kb_weights = PSM__ARENA_NEW(arena, psm__f32, kb_idx_total);
 
@@ -328,8 +328,8 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   if (ver >= csmMocVersion_42) {
     psm__alloc_field(m->blend_constraints.items,
         struct psm__blend_constraint, cnt->bs_constraints);
-    psm__alloc_field(m->blend_axes.items, struct psm__blend_axis,
-        cnt->blend_axes);
+    psm__alloc_field(m->blend_key_tables.items, struct psm__blend_key_table,
+        cnt->blend_key_tables);
     psm__alloc_field(m->blend_bindings.items, struct psm__blend_binding,
         cnt->blend_bindings);
     bs_constr_ptrs = PSM__ARENA_NEW(arena, struct psm__blend_constraint *,
@@ -356,7 +356,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
 
   /* Draw order groups */
   struct psm__draw_item *do_items = NULL;
-  if (cnt->draw_groups > 0 && src->draw_group_src.obj_count &&
+  if (cnt->draw_groups > 0 && src->draw_group_src.obj_len &&
       src->draw_group_src.max_order && src->draw_group_src.min_order) {
     psm__alloc_field(m->draw_groups.groups, struct psm__draw_group,
         cnt->draw_groups);
@@ -399,9 +399,9 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   }
 
   /* Parameter extensions */
-  if (ver < csmMocVersion_42 || !src->param_ext_src.key_runtime) {
-    psm__alloc_field(m->param_ext.keys, psm__f32 *, cnt->parameters);
-    psm__alloc_field(m->param_ext.key_counts, psm__i32, cnt->parameters);
+  if (ver < csmMocVersion_42 || !src->param_keys_src.key_runtime) {
+    psm__alloc_field(m->param_keys.keys, psm__f32 *, cnt->parameters);
+    psm__alloc_field(m->param_keys.key_counts, psm__i32, cnt->parameters);
   }
 
   /* Render orders */
@@ -434,7 +434,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   if (ver >= csmMocVersion_42)
     m->params.type = src->param_src.type;
 
-  m->axes.count = cnt->axes;
+  m->key_tables.count = cnt->key_tables;
   m->bindings.count = cnt->bindings;
 
   m->draw_groups.count = cnt->draw_groups;
@@ -443,12 +443,12 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
 
   if (ver >= csmMocVersion_42) {
     m->blend_constraints.count = cnt->bs_constraints;
-    if (src->blend_axis_src.keys_count &&
-        src->blend_axis_src.keys_begin) {
-      m->blend_axes.count = cnt->blend_axes;
+    if (src->blend_key_table_src.keys_len &&
+        src->blend_key_table_src.keys_off) {
+      m->blend_key_tables.count = cnt->blend_key_tables;
     }
-    if (src->blend_binding_src.axis_idx &&
-        src->blend_binding_src.key_bs_begin) {
+    if (src->blend_binding_src.key_table_idx &&
+        src->blend_binding_src.key_bs_off) {
       m->blend_bindings.count = cnt->blend_bindings;
     }
     m->bs_warps.count = cnt->bs_warps;
@@ -461,8 +461,8 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     }
 
     if (ver >= csmMocVersion_53 && src->bs_offscreen_src.target_idx &&
-        src->bs_offscreen_src.bs_binding_count &&
-        src->bs_offscreen_src.bs_binding_begin) {
+        src->bs_offscreen_src.bs_binding_len &&
+        src->bs_offscreen_src.bs_binding_off) {
       m->bs_offscreens.count = cnt->bs_offscreens;
     }
   }
@@ -472,9 +472,9 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     m->offscreens.keydata.interp.object_count = cnt->offscreens;
   }
 
-  if (ver >= csmMocVersion_42 && src->param_ext_src.key_runtime) {
-    m->param_ext.keys = (psm__f32 **)src->param_ext_src.key_runtime;
-    m->param_ext.key_counts = src->param_ext_src.keys_count;
+  if (ver >= csmMocVersion_42 && src->param_keys_src.key_runtime) {
+    m->param_keys.keys = (psm__f32 **)src->param_keys_src.key_runtime;
+    m->param_keys.key_counts = src->param_keys_src.keys_len;
   }
 
   /* Set up warp position pointers */
@@ -501,26 +501,26 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
 
   /* Set up keyform binding internal pointers */
   if (m && kb_ptrs && m->bindings.items) {
-    struct psm__axis **bp = kb_ptrs;
-    struct psm__axis **bp_end = kb_ptrs + kb_ptr_total;
+    struct psm__key_table **bp = kb_ptrs;
+    struct psm__key_table **bp_end = kb_ptrs + kb_ptr_total;
     psm__i32 *ki = kb_indices;
     psm__f32 *kwt = kb_weights;
 
     for (psm__i32 i = 0; i < cnt->bindings; i++) {
       struct psm__binding *kc = &m->bindings.items[i];
-      psm__i32 bc = src->binding_src.axis_idx_count[i];
+      psm__i32 bc = src->binding_src.key_table_idx_len[i];
 
-      bc = psm__clamp_i32(bc, 0, PSM__MAX_AXES);
+      bc = psm__clamp_i32(bc, 0, PSM__MAX_KEY_TABLES);
       psm__u32 mc = 1 << bc;
 
       /* Ensure bp doesn't exceed allocated buffer */
       psm__i32 remaining = (bp < bp_end) ? (psm__i32)(bp_end - bp) : 0;
       bc = psm__clamp_i32(bc, 0, remaining);
 
-      kc->axes = bp;
+      kc->key_tables = bp;
       kc->keyform_idx = ki;
       kc->weights = kwt;
-      kc->axis_count = bc;
+      kc->key_table_len = bc;
       kc->max_blend = mc;
 
       bp += bc;
@@ -530,11 +530,11 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   }
 
   /* Set up draw order group items */
-  if (cnt->draw_groups > 0 && do_items && src->draw_group_src.obj_count) {
+  if (cnt->draw_groups > 0 && do_items && src->draw_group_src.obj_len) {
     struct psm__draw_item *ip = do_items;
     for (psm__i32 i = 0; i < cnt->draw_groups; i++) {
       struct psm__draw_group *grp = &m->draw_groups.groups[i];
-      psm__i32 count = src->draw_group_src.obj_count[i];
+      psm__i32 count = src->draw_group_src.obj_len[i];
       if (!psm__valid_range(ip - do_items, count, cnt->draw_items)) {
         grp->items = NULL;
         grp->count = 0;
@@ -548,11 +548,11 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
 
   /* Set up blend shape constraint pointers */
   if (ver >= csmMocVersion_42 && bs_constr_ptrs &&
-      src->blend_binding_src.bs_constraint_idx_count) {
+      src->blend_binding_src.bs_constraint_idx_len) {
     struct psm__blend_constraint **ptr = bs_constr_ptrs;
     for (psm__i32 i = 0; i < cnt->blend_bindings; i++) {
       struct psm__blend_binding *bb = &m->blend_bindings.items[i];
-      psm__i32 cc = src->blend_binding_src.bs_constraint_idx_count[i];
+      psm__i32 cc = src->blend_binding_src.bs_constraint_idx_len[i];
       bb->constraints = ptr;
       bb->constraint_count = cc;
       ptr += cc;
@@ -594,17 +594,17 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
   m->force_update = 1;
 
   /* Parameter bindings */
-  if (cnt->axes > 0 && m->axes.items &&
-      ms->axis_src.keys_count && ms->axis_src.keys_begin &&
+  if (cnt->key_tables > 0 && m->key_tables.items &&
+      ms->key_table_src.keys_len && ms->key_table_src.keys_off &&
       ms->keys_src.key) {
-    for (psm__i32 i = 0; i < cnt->axes; i++) {
-      struct psm__axis *c = &m->axes.items[i];
-      psm__i32 key_cnt = ms->axis_src.keys_count[i];
-      psm__i32 keyform_offset = ms->axis_src.keys_begin[i];
+    for (psm__i32 i = 0; i < cnt->key_tables; i++) {
+      struct psm__key_table *c = &m->key_tables.items[i];
+      psm__i32 key_cnt = ms->key_table_src.keys_len[i];
+      psm__i32 keyform_off = ms->key_table_src.keys_off[i];
       c->key_count = key_cnt;
       c->out_of_range = 1;
-      if (psm__valid_range(keyform_offset, key_cnt, cnt->keys))
-        c->keys = &ms->keys_src.key[keyform_offset];
+      if (psm__valid_range(keyform_off, key_cnt, cnt->keys))
+        c->keys = &ms->keys_src.key[keyform_off];
       else
         c->keys = NULL;
     }
@@ -614,26 +614,26 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
   if (cnt->bindings > 0 && m->bindings.items) {
     for (psm__i32 i = 0; i < cnt->bindings; i++) {
       struct psm__binding *kc = &m->bindings.items[i];
-      psm__i32 bc = ms->binding_src.axis_idx_count[i];
-      psm__i32 pb = ms->binding_src.axis_idx_begin[i];
+      psm__i32 bc = ms->binding_src.key_table_idx_len[i];
+      psm__i32 kt_off = ms->binding_src.key_table_idx_off[i];
 
-      PSM__FAIL(!psm__valid_range(pb, bc,
-              cnt->axis_indices), PSM__ERR_FILE_CORRUPT,
-          "binding[%d] OOB: pb=%d bc=%d max=%d", i, pb, bc, cnt->axis_indices);
+      PSM__FAIL(!psm__valid_range(kt_off, bc,
+              cnt->key_table_idx), PSM__ERR_FILE_CORRUPT,
+          "binding[%d] OOB: off=%d len=%d max=%d", i, kt_off, bc, cnt->key_table_idx);
 
       kc->idx_dirty = 1;
       kc->weight_dirty = 1;
       kc->out_of_range = 1;
 
-      if (!kc->axes)
+      if (!kc->key_tables)
         continue;
 
       for (psm__i32 j = 0; j < bc; j++) {
-        psm__i32 idx = ms->axis_idx_src.index[pb + j];
-        PSM__FAIL(!psm__valid_idx(idx, cnt->axes),
+        psm__i32 idx = ms->key_table_idx_src.idx[kt_off + j];
+        PSM__FAIL(!psm__valid_idx(idx, cnt->key_tables),
             PSM__ERR_FILE_CORRUPT, "binding[%d] ptr[%d] OOB: idx=%d max=%d",
-            i, j, idx, cnt->axes);
-        kc->axes[j] = &m->axes.items[idx];
+            i, j, idx, cnt->key_tables);
+        kc->key_tables[j] = &m->key_tables.items[idx];
       }
     }
   }
@@ -659,8 +659,8 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         m->parts.offscreen_src_idx[i] = -1;
 
       psm__i32 mc = binding->max_blend;
-      psm__i32 kb = ms->part_src.keyform_offset[i];
-      if (!psm__valid_range(kb, mc, cnt->part_kf)) {
+      psm__i32 kb = ms->part_src.keyform_off[i];
+      if (!psm__valid_range(kb, mc, cnt->part_keyforms)) {
         part->binding = NULL;
         continue;
       }
@@ -674,8 +674,8 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
   if (cnt->parameters > 0 && m->params.items && m->params.input_value &&
       ms->param_src.minimum_value && ms->param_src.maximum_value &&
       ms->param_src.default_value && ms->param_src.repeat &&
-      ms->param_src.decimal_places && ms->param_src.axis_begin &&
-      ms->param_src.axis_count) {
+      ms->param_src.decimal_places && ms->param_src.key_table_off &&
+      ms->param_src.key_table_len) {
     for (psm__i32 i = 0; i < cnt->parameters; i++) {
       struct psm__param *param = &m->params.items[i];
 
@@ -696,21 +696,21 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
       param->snap_eps = powf(0.1f, (psm__f32)dp);
       param->interp_eps = param->snap_eps * 1.5f;
 
-      psm__i32 axis_begin = ms->param_src.axis_begin[i];
-      psm__i32 axis_count = ms->param_src.axis_count[i];
+      psm__i32 kt_begin = ms->param_src.key_table_off[i];
+      psm__i32 kt_count = ms->param_src.key_table_len[i];
 
       {
-        int rc = psm__valid_opt_range(axis_begin, axis_count, cnt->axes);
+        int rc = psm__valid_opt_range(kt_begin, kt_count, cnt->key_tables);
         if (rc < 0)
           PSM__LOGF("param[%d]: binding range "
-              "[%d, %d) OOB (max %d)", i, axis_begin, axis_begin + axis_count,
-              cnt->axes);
+              "[%d, %d) OOB (max %d)", i, kt_begin, kt_begin + kt_count,
+              cnt->key_tables);
         if (rc == 1) {
-          param->axes = &m->axes.items[axis_begin];
-          param->axis_count = axis_count;
+          param->key_tables = &m->key_tables.items[kt_begin];
+          param->key_table_len = kt_count;
         } else {
-          param->axes = NULL;
-          param->axis_count = 0;
+          param->key_tables = NULL;
+          param->key_table_len = 0;
         }
       }
 
@@ -718,8 +718,8 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
       m->params.input_value[i] = param->value;
       param->dirty = 1;
 
-      param->blend_axis_count = 0;
-      param->blend_axes = NULL;
+      param->blend_key_table_len = 0;
+      param->blend_key_tables = NULL;
     }
   }
 
@@ -756,14 +756,14 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
         warp->binding = binding;
         warp->row = ws->row[i];
-        warp->column = ws->column[i];
+        warp->col = ws->col[i];
         warp->vertex_count = ws->vertex_count[i];
         if (ver >= csmMocVersion_33 && ws->quad_transform)
           warp->quad_transform = ws->quad_transform[i];
 
         psm__i32 mc = binding->max_blend;
-        psm__i32 kb = ws->keyform_offset[i];
-        if (!psm__valid_range(kb, mc, cnt->warp_kf)) {
+        psm__i32 kb = ws->keyform_off[i];
+        if (!psm__valid_range(kb, mc, cnt->warp_keyforms)) {
           warp->binding = NULL;
           continue;
         }
@@ -792,8 +792,8 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         rot->base_angle = rs->base_angle[i];
 
         psm__i32 mc = binding->max_blend;
-        psm__i32 kb = rs->keyform_offset[i];
-        if (!psm__valid_range(kb, mc, cnt->rotation_kf)) {
+        psm__i32 kb = rs->keyform_off[i];
+        if (!psm__valid_range(kb, mc, cnt->rotation_keyforms)) {
           rot->binding = NULL;
           continue;
         }
@@ -851,8 +851,8 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
       }
 
       psm__i32 mc = binding->max_blend;
-      psm__i32 kb = ms->art_mesh_src.keyform_offset[i];
-      if (!psm__valid_range(kb, mc, cnt->art_mesh_kf)) {
+      psm__i32 kb = ms->art_mesh_src.keyform_off[i];
+      if (!psm__valid_range(kb, mc, cnt->art_mesh_keyforms)) {
         mesh->binding = NULL;
         continue;
       }
@@ -868,26 +868,26 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     struct psm__rotation_keydata *rk = &m->deformers.rotations.keydata;
     struct psm__art_mesh_keydata *ak = &m->art_meshes.keydata;
     {
-      struct psm__key_color_src *mc = &ms->kf_mul_color_src;
-      struct psm__key_color_src *sc = &ms->kf_scr_color_src;
+      struct psm__key_color_src *mc = &ms->keyform_mul_color_src;
+      struct psm__key_color_src *sc = &ms->keyform_scr_color_src;
 
       /* Warp deformer colors */
       if (mc->r && sc->r && wk->mul_color.r &&
-          ms->warp_key_src.key_mul_color_offset &&
-          ms->warp_key_src.key_scr_color_offset) {
+          ms->warp_key_src.key_mul_color_off &&
+          ms->warp_key_src.key_scr_color_off) {
         psm__i32 n = wk->interp.tmp_len;
-        psm__i32 *mb = ms->warp_key_src.key_mul_color_offset;
-        psm__i32 *sb = ms->warp_key_src.key_scr_color_offset;
-        if (n > cnt->warp_kf)
-          n = cnt->warp_kf;
+        psm__i32 *mb = ms->warp_key_src.key_mul_color_off;
+        psm__i32 *sb = ms->warp_key_src.key_scr_color_off;
+        if (n > cnt->warp_keyforms)
+          n = cnt->warp_keyforms;
         for (psm__i32 i = 0; i < n; i++) {
           psm__i32 mi = mb[i], si = sb[i];
-          if (psm__valid_idx(mi, cnt->kf_mul_colors)) {
+          if (psm__valid_idx(mi, cnt->keyform_mul_colors)) {
             wk->mul_color.r[i] = mc->r[mi];
             wk->mul_color.g[i] = mc->g[mi];
             wk->mul_color.b[i] = mc->b[mi];
           }
-          if (psm__valid_idx(si, cnt->kf_scr_colors)) {
+          if (psm__valid_idx(si, cnt->keyform_scr_colors)) {
             wk->scr_color.r[i] = sc->r[si];
             wk->scr_color.g[i] = sc->g[si];
             wk->scr_color.b[i] = sc->b[si];
@@ -897,21 +897,21 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
       /* Rotation deformer colors */
       if (mc->r && sc->r && rk->mul_color.r &&
-          ms->rotation_key_src.key_mul_color_offset &&
-          ms->rotation_key_src.key_scr_color_offset) {
+          ms->rotation_key_src.key_mul_color_off &&
+          ms->rotation_key_src.key_scr_color_off) {
         psm__i32 n = rk->interp.tmp_len;
-        psm__i32 *mb = ms->rotation_key_src.key_mul_color_offset;
-        psm__i32 *sb = ms->rotation_key_src.key_scr_color_offset;
-        if (n > cnt->rotation_kf)
-          n = cnt->rotation_kf;
+        psm__i32 *mb = ms->rotation_key_src.key_mul_color_off;
+        psm__i32 *sb = ms->rotation_key_src.key_scr_color_off;
+        if (n > cnt->rotation_keyforms)
+          n = cnt->rotation_keyforms;
         for (psm__i32 i = 0; i < n; i++) {
           psm__i32 mi = mb[i], si = sb[i];
-          if (psm__valid_idx(mi, cnt->kf_mul_colors)) {
+          if (psm__valid_idx(mi, cnt->keyform_mul_colors)) {
             rk->mul_color.r[i] = mc->r[mi];
             rk->mul_color.g[i] = mc->g[mi];
             rk->mul_color.b[i] = mc->b[mi];
           }
-          if (psm__valid_idx(si, cnt->kf_scr_colors)) {
+          if (psm__valid_idx(si, cnt->keyform_scr_colors)) {
             rk->scr_color.r[i] = sc->r[si];
             rk->scr_color.g[i] = sc->g[si];
             rk->scr_color.b[i] = sc->b[si];
@@ -921,21 +921,21 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
       /* Art mesh colors */
       if (mc->r && sc->r && ak->mul_color.r &&
-          ms->art_mesh_key_src.key_mul_color_offset &&
-          ms->art_mesh_key_src.key_scr_color_offset) {
+          ms->art_mesh_key_src.key_mul_color_off &&
+          ms->art_mesh_key_src.key_scr_color_off) {
         psm__i32 n = ak->interp.tmp_len;
-        psm__i32 *mb = ms->art_mesh_key_src.key_mul_color_offset;
-        psm__i32 *sb = ms->art_mesh_key_src.key_scr_color_offset;
-        if (n > cnt->art_mesh_kf)
-          n = cnt->art_mesh_kf;
+        psm__i32 *mb = ms->art_mesh_key_src.key_mul_color_off;
+        psm__i32 *sb = ms->art_mesh_key_src.key_scr_color_off;
+        if (n > cnt->art_mesh_keyforms)
+          n = cnt->art_mesh_keyforms;
         for (psm__i32 i = 0; i < n; i++) {
           psm__i32 mi = mb[i], si = sb[i];
-          if (psm__valid_idx(mi, cnt->kf_mul_colors)) {
+          if (psm__valid_idx(mi, cnt->keyform_mul_colors)) {
             ak->mul_color.r[i] = mc->r[mi];
             ak->mul_color.g[i] = mc->g[mi];
             ak->mul_color.b[i] = mc->b[mi];
           }
-          if (psm__valid_idx(si, cnt->kf_scr_colors)) {
+          if (psm__valid_idx(si, cnt->keyform_scr_colors)) {
             ak->scr_color.r[i] = sc->r[si];
             ak->scr_color.g[i] = sc->g[si];
             ak->scr_color.b[i] = sc->b[si];
@@ -951,12 +951,12 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     struct psm__draw_group_obj_src *os = &ms->draw_group_obj_src;
     if (cnt->draw_groups > 0 && m->draw_groups.groups &&
         gs->obj_total_count && gs->max_order && gs->min_order &&
-        gs->obj_begin && os->type && os->index && os->self_group_idx) {
+        gs->obj_off && os->type && os->idx && os->self_group_idx) {
       for (psm__i32 i = 0; i < cnt->draw_groups; i++) {
         struct psm__draw_group *grp = &m->draw_groups.groups[i];
         psm__i32 max_order = gs->max_order[i];
         psm__i32 min_order = gs->min_order[i];
-        psm__i32 begin_idx = gs->obj_begin[i];
+        psm__i32 begin_idx = gs->obj_off[i];
 
         grp->total_count = gs->obj_total_count[i];
         grp->max_order = max_order;
@@ -973,7 +973,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
           for (psm__i32 j = 0; j < grp->count; j++) {
             struct psm__draw_item *item = &grp->items[j];
             item->object_type = os->type[begin_idx + j];
-            item->object_idx = os->index[begin_idx + j];
+            item->object_idx = os->idx[begin_idx + j];
             item->group_idx = os->self_group_idx[begin_idx + j];
             item->draw_order = 0;
           }
@@ -988,9 +988,9 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     struct psm__glue_info_src *gis = &ms->glue_info_src;
     psm__i32 *max_combs = m->glues.keydata.interp.max_blend;
     if (cnt->glues > 0 && m->glues.items && m->bindings.items && max_combs &&
-        gls->binding_idx && gls->art_mesh_index_a &&
-        gls->art_mesh_index_b && gls->info_count && gls->info_begin &&
-        gis->weight && gis->position_idx) {
+        gls->binding_idx && gls->art_mesh_idx_a &&
+        gls->art_mesh_idx_b && gls->info_len && gls->info_off &&
+        gis->weight && gis->pos_idx) {
       psm__i32 tmp_len = 0;
       for (psm__i32 i = 0; i < cnt->glues; i++) {
         struct psm__glue *glue = &m->glues.items[i];
@@ -1000,29 +1000,29 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
           continue;
         }
         struct psm__binding *binding = &m->bindings.items[bi];
-        psm__i32 info_begin = gls->info_begin[i];
+        psm__i32 info_off = gls->info_off[i];
 
         glue->binding = binding;
-        glue->mesh_idx0 = gls->art_mesh_index_a[i];
-        glue->mesh_idx1 = gls->art_mesh_index_b[i];
-        glue->glue_info_count = gls->info_count[i];
+        glue->mesh_idx0 = gls->art_mesh_idx_a[i];
+        glue->mesh_idx1 = gls->art_mesh_idx_b[i];
+        glue->glue_info_count = gls->info_len[i];
 
-        if (!psm__valid_range(info_begin, glue->glue_info_count,
+        if (!psm__valid_range(info_off, glue->glue_info_count,
                 cnt->glue_info)) {
           PSM__LOGF("glue[%d]: info range "
-              "[%d, %d) OOB (max %d)", i, info_begin,
-              info_begin + glue->glue_info_count, cnt->glue_info);
+              "[%d, %d) OOB (max %d)", i, info_off,
+              info_off + glue->glue_info_count, cnt->glue_info);
           glue->weights = NULL;
           glue->pos_idx = NULL;
           glue->glue_info_count = 0;
         } else {
-          glue->weights = &gis->weight[info_begin];
-          glue->pos_idx = &gis->position_idx[info_begin];
+          glue->weights = &gis->weight[info_off];
+          glue->pos_idx = &gis->pos_idx[info_off];
         }
 
         psm__i32 mc = binding->max_blend;
-        psm__i32 kb = gls->keyform_offset[i];
-        if (!psm__valid_range(kb, mc, cnt->glue_kf)) {
+        psm__i32 kb = gls->keyform_off[i];
+        if (!psm__valid_range(kb, mc, cnt->glue_keyforms)) {
           glue->binding = NULL;
           continue;
         }
@@ -1038,13 +1038,13 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     struct psm__blend_constraint_src *bscs = &ms->blend_constraint_src;
     struct psm__blend_constraint_val_src
         *bsvs = &ms->blend_constraint_val_src;
-    if (bscs->parameter_idx && bscs->value_begin &&
-        bscs->value_count && bsvs->key && bsvs->weight) {
+    if (bscs->parameter_idx && bscs->value_off &&
+        bscs->value_len && bsvs->key && bsvs->weight) {
       for (psm__i32 i = 0; i < cnt->bs_constraints; i++) {
         struct psm__blend_constraint *constr = &m->blend_constraints.items[i];
         psm__i32 pi = bscs->parameter_idx[i];
-        psm__i32 vb = bscs->value_begin[i];
-        psm__i32 vc = bscs->value_count[i];
+        psm__i32 vb = bscs->value_off[i];
+        psm__i32 vc = bscs->value_len[i];
         if (!psm__valid_idx(pi, cnt->parameters)) {
           constr->param = NULL;
           constr->keys = NULL;
@@ -1069,12 +1069,12 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
       }
     }
 
-    struct psm__blend_axis_src *ba_src = &ms->blend_axis_src;
-    if (ba_src->keys_count && ba_src->keys_begin && ba_src->base_key_idx) {
-      for (psm__i32 i = 0; i < cnt->blend_axes; i++) {
-        struct psm__blend_axis *ba = &m->blend_axes.items[i];
-        psm__i32 kc = ba_src->keys_count[i];
-        psm__i32 kb = ba_src->keys_begin[i];
+    struct psm__blend_key_table_src *ba_src = &ms->blend_key_table_src;
+    if (ba_src->keys_len && ba_src->keys_off && ba_src->base_key_idx) {
+      for (psm__i32 i = 0; i < cnt->blend_key_tables; i++) {
+        struct psm__blend_key_table *ba = &m->blend_key_tables.items[i];
+        psm__i32 kc = ba_src->keys_len[i];
+        psm__i32 kb = ba_src->keys_off[i];
         if (psm__valid_range(kb, kc, cnt->keys)) {
           ba->key_count = kc;
           ba->keys = &ms->keys_src.key[kb];
@@ -1094,39 +1094,39 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
     for (psm__i32 i = 0; i < cnt->parameters; i++) {
       struct psm__param *pc = &m->params.items[i];
-      if (ms->param_src.blend_axis_count &&
-          ms->param_src.blend_axis_begin &&
-          m->blend_axes.items) {
-        psm__i32 bs_cnt = ms->param_src.blend_axis_count[i];
-        psm__i32 bs_begin = ms->param_src.blend_axis_begin[i];
+      if (ms->param_src.blend_key_table_len &&
+          ms->param_src.blend_key_table_off &&
+          m->blend_key_tables.items) {
+        psm__i32 bs_cnt = ms->param_src.blend_key_table_len[i];
+        psm__i32 bs_begin = ms->param_src.blend_key_table_off[i];
         if (psm__valid_opt_range(bs_begin,
-                bs_cnt, cnt->blend_axes) == 1) {
-          pc->blend_axis_count = bs_cnt;
-          pc->blend_axes = &m->blend_axes.items[bs_begin];
+                bs_cnt, cnt->blend_key_tables) == 1) {
+          pc->blend_key_table_len = bs_cnt;
+          pc->blend_key_tables = &m->blend_key_tables.items[bs_begin];
         }
       }
     }
 
     struct psm__blend_binding_src *bb_src = &ms->blend_binding_src;
-    if (bb_src->axis_idx && bb_src->key_bs_begin) {
+    if (bb_src->key_table_idx && bb_src->key_bs_off) {
       for (psm__i32 i = 0; i < cnt->blend_bindings; i++) {
         struct psm__blend_binding *bb = &m->blend_bindings.items[i];
-        psm__i32 bpi = bb_src->axis_idx[i];
-        if (m->blend_axes.items && psm__valid_idx(bpi,
-                cnt->blend_axes))
-          bb->axis = &m->blend_axes.items[bpi];
+        psm__i32 bpi = bb_src->key_table_idx[i];
+        if (m->blend_key_tables.items && psm__valid_idx(bpi,
+                cnt->blend_key_tables))
+          bb->key_table = &m->blend_key_tables.items[bpi];
         else
-          bb->axis = NULL;
-        bb->key_src_offset = bb_src->key_bs_begin[i];
+          bb->key_table = NULL;
+        bb->key_src_off = bb_src->key_bs_off[i];
         bb->blend_count = 0;
         bb->idx_dirty = 1;
         bb->weight_dirty = 1;
         bb->weight = 1.0f;
 
         psm__i32 cc = bb->constraint_count;
-        if (cc > 0 && bb->constraints && bb_src->bs_constraint_idx_begin &&
+        if (cc > 0 && bb->constraints && bb_src->bs_constraint_idx_off &&
             ms->blend_constraint_idx_src.constraint_idx) {
-          psm__i32 cb = bb_src->bs_constraint_idx_begin[i];
+          psm__i32 cb = bb_src->bs_constraint_idx_off[i];
           for (psm__i32 j = 0; j < cc; j++) {
             psm__i32 ci = ms->blend_constraint_idx_src.constraint_idx[cb + j];
             if (psm__valid_idx(ci, cnt->bs_constraints))
@@ -1138,14 +1138,14 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
       }
     }
 
-    if (ms->bs_warp_src.target_idx && ms->bs_warp_src.bs_binding_count &&
-        ms->bs_warp_src.bs_binding_begin) {
+    if (ms->bs_warp_src.target_idx && ms->bs_warp_src.bs_binding_len &&
+        ms->bs_warp_src.bs_binding_off) {
       for (psm__i32 i = 0; i < cnt->bs_warps; i++) {
         struct psm__blend_shape *shape = &m->bs_warps.items[i];
         shape->target_idx = ms->bs_warp_src.target_idx[i];
-        shape->axis_count = ms->bs_warp_src.bs_binding_count[i];
-        psm__i32 bb = ms->bs_warp_src.bs_binding_begin[i];
-        if (psm__valid_range(bb, shape->axis_count, cnt->blend_bindings))
+        shape->binding_count = ms->bs_warp_src.bs_binding_len[i];
+        psm__i32 bb = ms->bs_warp_src.bs_binding_off[i];
+        if (psm__valid_range(bb, shape->binding_count, cnt->blend_bindings))
           shape->bindings = &m->blend_bindings.items[bb];
         else
           shape->bindings = NULL;
@@ -1153,14 +1153,14 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     }
 
     if (ms->bs_art_mesh_src.target_idx &&
-        ms->bs_art_mesh_src.bs_binding_count &&
-        ms->bs_art_mesh_src.bs_binding_begin) {
+        ms->bs_art_mesh_src.bs_binding_len &&
+        ms->bs_art_mesh_src.bs_binding_off) {
       for (psm__i32 i = 0; i < cnt->bs_art_meshes; i++) {
         struct psm__blend_shape *shape = &m->bs_art_meshes.items[i];
         shape->target_idx = ms->bs_art_mesh_src.target_idx[i];
-        shape->axis_count = ms->bs_art_mesh_src.bs_binding_count[i];
-        psm__i32 bb = ms->bs_art_mesh_src.bs_binding_begin[i];
-        if (psm__valid_range(bb, shape->axis_count, cnt->blend_bindings))
+        shape->binding_count = ms->bs_art_mesh_src.bs_binding_len[i];
+        psm__i32 bb = ms->bs_art_mesh_src.bs_binding_off[i];
+        if (psm__valid_range(bb, shape->binding_count, cnt->blend_bindings))
           shape->bindings = &m->blend_bindings.items[bb];
         else
           shape->bindings = NULL;
@@ -1170,14 +1170,14 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
   /* BlendShape (v5.0+) */
   if (ver >= csmMocVersion_50) {
-    if (ms->bs_part_src.target_idx && ms->bs_part_src.bs_binding_count &&
-        ms->bs_part_src.bs_binding_begin) {
+    if (ms->bs_part_src.target_idx && ms->bs_part_src.bs_binding_len &&
+        ms->bs_part_src.bs_binding_off) {
       for (psm__i32 i = 0; i < cnt->bs_parts; i++) {
         struct psm__blend_shape *shape = &m->bs_parts.items[i];
         shape->target_idx = ms->bs_part_src.target_idx[i];
-        shape->axis_count = ms->bs_part_src.bs_binding_count[i];
-        psm__i32 bb = ms->bs_part_src.bs_binding_begin[i];
-        if (psm__valid_range(bb, shape->axis_count, cnt->blend_bindings))
+        shape->binding_count = ms->bs_part_src.bs_binding_len[i];
+        psm__i32 bb = ms->bs_part_src.bs_binding_off[i];
+        if (psm__valid_range(bb, shape->binding_count, cnt->blend_bindings))
           shape->bindings = &m->blend_bindings.items[bb];
         else
           shape->bindings = NULL;
@@ -1185,28 +1185,28 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     }
 
     if (ms->bs_rotation_src.target_idx &&
-        ms->bs_rotation_src.bs_binding_count &&
-        ms->bs_rotation_src.bs_binding_begin) {
+        ms->bs_rotation_src.bs_binding_len &&
+        ms->bs_rotation_src.bs_binding_off) {
       for (psm__i32 i = 0; i < cnt->bs_rotations; i++) {
         struct psm__blend_shape *shape = &m->bs_rotations.items[i];
         shape->target_idx = ms->bs_rotation_src.target_idx[i];
-        shape->axis_count = ms->bs_rotation_src.bs_binding_count[i];
-        psm__i32 bb = ms->bs_rotation_src.bs_binding_begin[i];
-        if (psm__valid_range(bb, shape->axis_count, cnt->blend_bindings))
+        shape->binding_count = ms->bs_rotation_src.bs_binding_len[i];
+        psm__i32 bb = ms->bs_rotation_src.bs_binding_off[i];
+        if (psm__valid_range(bb, shape->binding_count, cnt->blend_bindings))
           shape->bindings = &m->blend_bindings.items[bb];
         else
           shape->bindings = NULL;
       }
     }
 
-    if (ms->bs_glue_src.target_idx && ms->bs_glue_src.bs_binding_count &&
-        ms->bs_glue_src.bs_binding_begin) {
+    if (ms->bs_glue_src.target_idx && ms->bs_glue_src.bs_binding_len &&
+        ms->bs_glue_src.bs_binding_off) {
       for (psm__i32 i = 0; i < cnt->bs_glues; i++) {
         struct psm__blend_shape *shape = &m->bs_glues.items[i];
         shape->target_idx = ms->bs_glue_src.target_idx[i];
-        shape->axis_count = ms->bs_glue_src.bs_binding_count[i];
-        psm__i32 bb = ms->bs_glue_src.bs_binding_begin[i];
-        if (psm__valid_range(bb, shape->axis_count, cnt->blend_bindings))
+        shape->binding_count = ms->bs_glue_src.bs_binding_len[i];
+        psm__i32 bb = ms->bs_glue_src.bs_binding_off[i];
+        if (psm__valid_range(bb, shape->binding_count, cnt->blend_bindings))
           shape->bindings = &m->blend_bindings.items[bb];
         else
           shape->bindings = NULL;
@@ -1233,7 +1233,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         }
 
         /* Check source arrays */
-        if (!ms->part_src.binding_idx || !ms->part_src.keyform_offset) {
+        if (!ms->part_src.binding_idx || !ms->part_src.keyform_off) {
           surf->binding = NULL;
           surf->owner_enable = NULL;
           surf->keyform_idx = NULL;
@@ -1242,7 +1242,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         }
 
         psm__i32 pbi = ms->part_src.binding_idx[oi];
-        psm__i32 kbi = ms->part_src.keyform_offset[oi];
+        psm__i32 kbi = ms->part_src.keyform_off[oi];
 
         if (psm__valid_opt_idx(pbi, cnt->bindings) == 1)
           surf->binding = &m->bindings.items[pbi];
@@ -1255,7 +1255,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
           surf->owner_enable = NULL;
 
         /* Set offscreen keyform index pointer */
-        if (os_key_idx && kbi >= 0 && kbi < cnt->part_kf) {
+        if (os_key_idx && kbi >= 0 && kbi < cnt->part_keyforms) {
           surf->keyform_idx = &os_key_idx[kbi];
         } else {
           surf->keyform_idx = NULL;
@@ -1276,14 +1276,14 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     }
 
     if (ms->bs_offscreen_src.target_idx &&
-        ms->bs_offscreen_src.bs_binding_count &&
-        ms->bs_offscreen_src.bs_binding_begin) {
+        ms->bs_offscreen_src.bs_binding_len &&
+        ms->bs_offscreen_src.bs_binding_off) {
       for (psm__i32 i = 0; i < cnt->bs_offscreens; i++) {
         struct psm__blend_shape *shape = &m->bs_offscreens.items[i];
         shape->target_idx = ms->bs_offscreen_src.target_idx[i];
-        shape->axis_count = ms->bs_offscreen_src.bs_binding_count[i];
-        psm__i32 bb = ms->bs_offscreen_src.bs_binding_begin[i];
-        if (psm__valid_range(bb, shape->axis_count, cnt->blend_bindings))
+        shape->binding_count = ms->bs_offscreen_src.bs_binding_len[i];
+        psm__i32 bb = ms->bs_offscreen_src.bs_binding_off[i];
+        if (psm__valid_range(bb, shape->binding_count, cnt->blend_bindings))
           shape->bindings = &m->blend_bindings.items[bb];
         else
           shape->bindings = NULL;
@@ -1292,56 +1292,56 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
   }
 
   /* Parameter extensions */
-  if (ver >= csmMocVersion_42 && ms->param_ext_src.key_runtime) {
-    if (ms->keys_src.key && ms->param_ext_src.keys_begin) {
+  if (ver >= csmMocVersion_42 && ms->param_keys_src.key_runtime) {
+    if (ms->keys_src.key && ms->param_keys_src.keys_off) {
       for (psm__i32 i = 0; i < cnt->parameters; i++) {
-        psm__i32 kb = ms->param_ext_src.keys_begin[i];
+        psm__i32 kb = ms->param_keys_src.keys_off[i];
         if (kb < 0 || kb > cnt->keys) {
-          PSM__LOGF("param_ext[%d]: keyform_offset %d OOB (max %d)",
+          PSM__LOGF("param_keys[%d]: keyform_off %d OOB (max %d)",
               i, kb, cnt->keys);
-          m->param_ext.keys[i] = NULL;
+          m->param_keys.keys[i] = NULL;
         } else {
-          m->param_ext.keys[i] = kb < cnt->keys ? &ms->keys_src.key[kb] : NULL;
+          m->param_keys.keys[i] = kb < cnt->keys ? &ms->keys_src.key[kb] : NULL;
         }
       }
     }
   } else {
     for (psm__i32 i = 0; i < cnt->parameters; i++) {
-      psm__i32 axis_begin = ms->param_src.axis_begin[i];
-      psm__i32 axis_count = ms->param_src.axis_count[i];
+      psm__i32 kt_begin = ms->param_src.key_table_off[i];
+      psm__i32 kt_count = ms->param_src.key_table_len[i];
 
-      if (axis_begin < 0 || axis_count <= 0 || !ms->keys_src.key ||
-          !ms->axis_src.keys_begin || !ms->axis_src.keys_count) {
-        m->param_ext.keys[i] = NULL;
-        m->param_ext.key_counts[i] = 0;
+      if (kt_begin < 0 || kt_count <= 0 || !ms->keys_src.key ||
+          !ms->key_table_src.keys_off || !ms->key_table_src.keys_len) {
+        m->param_keys.keys[i] = NULL;
+        m->param_keys.key_counts[i] = 0;
         continue;
       }
-      if (!psm__valid_range(axis_begin, axis_count, cnt->axes)) {
-        PSM__LOGF("param_ext fallback[%d]: axis_begin %d OOB (max %d)",
-            i, axis_begin, cnt->axes);
-        m->param_ext.keys[i] = NULL;
-        m->param_ext.key_counts[i] = 0;
+      if (!psm__valid_range(kt_begin, kt_count, cnt->key_tables)) {
+        PSM__LOGF("param_keys fallback[%d]: kt_begin %d OOB (max %d)",
+            i, kt_begin, cnt->key_tables);
+        m->param_keys.keys[i] = NULL;
+        m->param_keys.key_counts[i] = 0;
         continue;
       }
-      psm__i32 best = axis_begin, best_kc = 0;
-      for (psm__i32 j = 0; j < axis_count; j++) {
-        psm__i32 idx = axis_begin + j;
-        if (idx < cnt->axes && ms->axis_src.keys_count[idx]
+      psm__i32 best = kt_begin, best_kc = 0;
+      for (psm__i32 j = 0; j < kt_count; j++) {
+        psm__i32 idx = kt_begin + j;
+        if (idx < cnt->key_tables && ms->key_table_src.keys_len[idx]
                 > best_kc) {
-          best_kc = ms->axis_src.keys_count[idx];
+          best_kc = ms->key_table_src.keys_len[idx];
           best = idx;
         }
       }
-      psm__i32 fkb = ms->axis_src.keys_begin[best];
+      psm__i32 fkb = ms->key_table_src.keys_off[best];
       if (!psm__valid_range(fkb, best_kc, cnt->keys)) {
-        PSM__LOGF("param_ext fallback[%d]: key range [%d, %d) OOB (max %d)",
+        PSM__LOGF("param_keys fallback[%d]: key range [%d, %d) OOB (max %d)",
             i, fkb, fkb + best_kc, cnt->keys);
-        m->param_ext.keys[i] = NULL;
-        m->param_ext.key_counts[i] = 0;
+        m->param_keys.keys[i] = NULL;
+        m->param_keys.key_counts[i] = 0;
         continue;
       }
-      m->param_ext.keys[i] = &ms->keys_src.key[fkb];
-      m->param_ext.key_counts[i] = best_kc;
+      m->param_keys.keys[i] = &ms->keys_src.key[fkb];
+      m->param_keys.key_counts[i] = best_kc;
     }
   }
 
