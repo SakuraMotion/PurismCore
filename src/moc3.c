@@ -117,7 +117,7 @@ psm__verify_count_info(const struct psm__count_info *cnt)
       cnt->warps < 0 || cnt->rotations < 0 ||
       cnt->art_meshes < 0 || cnt->parameters < 0 ||
       cnt->bindings < 0 || cnt->key_tables < 0 ||
-      cnt->keys < 0 || cnt->uvs < 0 || cnt->indices < 0 || cnt->masks < 0 ||
+      cnt->keys < 0 || cnt->uvs < 0 || cnt->idx < 0 || cnt->masks < 0 ||
       cnt->glues < 0 || cnt->keyform_pos < 0 || cnt->part_keyforms < 0 ||
       cnt->warp_keyforms < 0 || cnt->rotation_keyforms < 0 ||
       cnt->art_mesh_keyforms < 0 || cnt->glue_keyforms < 0,
@@ -293,8 +293,8 @@ done_nonnull:
         "art_mesh[%d]: UV [%d, +%d*2) oob (max %d)",
         i, src->art_mesh_src.uv_off[i],
         src->art_mesh_src.vertex_count[i], cnt->uvs);
-    psm__model_check_range(src->art_mesh_src.indices_off,
-        src->art_mesh_src.indices_len, i, cnt->indices);
+    psm__model_check_range(src->art_mesh_src.idx_off,
+        src->art_mesh_src.idx_len, i, cnt->idx);
     psm__model_check_range(src->art_mesh_src.mask_off,
         src->art_mesh_src.mask_len, i, cnt->masks);
   }
@@ -316,14 +316,14 @@ done_nonnull:
   /* Keyform binding sources */
   for (psm__i32 i = 0; i < cnt->bindings; i++) {
     psm__model_check_range(src->binding_src.key_table_idx_off,
-        src->binding_src.key_table_idx_len, i, cnt->key_table_indices);
+        src->binding_src.key_table_idx_len, i, cnt->key_table_idx);
     psm__i32 pc = src->binding_src.key_table_idx_len[i];
     PSM__FAIL(pc < 0 || pc > PSM__MAX_KEY_TABLES, PSM__ERR_FILE_CORRUPT,
         "binding[%d] param_count=%d oob", i, pc);
   }
 
   /* Parameter binding index sources */
-  for (psm__i32 i = 0; i < cnt->key_table_indices; i++) {
+  for (psm__i32 i = 0; i < cnt->key_table_idx; i++) {
     psm__model_check_index(src->key_table_idx_src.index,
         i, cnt->key_tables);
   }
@@ -444,7 +444,7 @@ done_nonnull:
 
   /* Blend shape keyform binding sources */
   for (psm__i32 i = 0; i < cnt->blend_bindings; i++) {
-    psm__model_check_index(src->blend_binding_src.axis_idx,
+    psm__model_check_index(src->blend_binding_src.key_table_idx,
         i, cnt->blend_key_tables);
     psm__model_check_range(src->blend_binding_src.bs_constraint_idx_off,
         src->blend_binding_src.bs_constraint_idx_len,
@@ -893,11 +893,11 @@ skip_mask_processing:
         if (psm__check_idx(ub, cnt->uvs))
           src->art_mesh_src.uv_runtime[i] = &src->uv_src.xy[ub];
       }
-      if (src->indices_src.index && src->art_mesh_src.indices_off) {
-        psm__i32 io = src->art_mesh_src.indices_off[i];
-        if (psm__check_idx(io, cnt->indices))
+      if (src->idx_src.idx && src->art_mesh_src.idx_off) {
+        psm__i32 io = src->art_mesh_src.idx_off[i];
+        if (psm__check_idx(io, cnt->idx))
           src->art_mesh_src.position_idx_runtime[i] =
-              &src->indices_src.index[io];
+              &src->idx_src.idx[io];
       }
       if (src->mask_src.art_mesh_idx && src->art_mesh_src.mask_off) {
         psm__i32 mb2 = src->art_mesh_src.mask_off[i];
@@ -937,9 +937,9 @@ skip_mask_processing:
 
   if (src->canvas_info && (src->canvas_info->flag &
           PSM__CANVAS_FLAG_Y_REVERSED) == 0) {
-    psm__u16 *pos_idx = src->indices_src.index;
-    psm__i32 *idx_begin = src->art_mesh_src.indices_off;
-    psm__i32 *idx_cnt = src->art_mesh_src.indices_len;
+    psm__u16 *pos_idx = src->idx_src.idx;
+    psm__i32 *idx_begin = src->art_mesh_src.idx_off;
+    psm__i32 *idx_cnt = src->art_mesh_src.idx_len;
 
     if (!pos_idx || !idx_begin || !idx_cnt)
       goto skip_y_reversal;
@@ -948,7 +948,7 @@ skip_mask_processing:
     for (psm__i32 i = 0; i < count; i++) {
       psm__i32 ic = idx_cnt[i];
       psm__i32 ib = idx_begin[i];
-      if (ic <= 0 || !psm__check_offset_range(ib, ic, cnt->indices))
+      if (ic <= 0 || !psm__check_offset_range(ib, ic, cnt->idx))
         continue;
       psm__u16 *idx = &pos_idx[ib];
       for (psm__i32 j = 0; j + 2 < ic; j += 3) {

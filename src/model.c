@@ -447,7 +447,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
         src->blend_key_table_src.keys_off) {
       m->blend_key_tables.count = cnt->blend_key_tables;
     }
-    if (src->blend_binding_src.axis_idx &&
+    if (src->blend_binding_src.key_table_idx &&
         src->blend_binding_src.key_bs_off) {
       m->blend_bindings.count = cnt->blend_bindings;
     }
@@ -618,8 +618,8 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
       psm__i32 kt_off = ms->binding_src.key_table_idx_off[i];
 
       PSM__FAIL(!psm__valid_range(kt_off, bc,
-              cnt->key_table_indices), PSM__ERR_FILE_CORRUPT,
-          "binding[%d] OOB: off=%d len=%d max=%d", i, kt_off, bc, cnt->key_table_indices);
+              cnt->key_table_idx), PSM__ERR_FILE_CORRUPT,
+          "binding[%d] OOB: off=%d len=%d max=%d", i, kt_off, bc, cnt->key_table_idx);
 
       kc->idx_dirty = 1;
       kc->weight_dirty = 1;
@@ -1108,10 +1108,10 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     }
 
     struct psm__blend_binding_src *bb_src = &ms->blend_binding_src;
-    if (bb_src->axis_idx && bb_src->key_bs_off) {
+    if (bb_src->key_table_idx && bb_src->key_bs_off) {
       for (psm__i32 i = 0; i < cnt->blend_bindings; i++) {
         struct psm__blend_binding *bb = &m->blend_bindings.items[i];
-        psm__i32 bpi = bb_src->axis_idx[i];
+        psm__i32 bpi = bb_src->key_table_idx[i];
         if (m->blend_key_tables.items && psm__valid_idx(bpi,
                 cnt->blend_key_tables))
           bb->key_table = &m->blend_key_tables.items[bpi];

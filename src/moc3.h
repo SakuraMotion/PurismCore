@@ -50,12 +50,12 @@ struct psm__count_info {
   psm__i32 rotation_keyforms;
   psm__i32 art_mesh_keyforms;
   psm__i32 keyform_pos;
-  psm__i32 key_table_indices;
+  psm__i32 key_table_idx;
   psm__i32 bindings;
   psm__i32 key_tables;
   psm__i32 keys;
   psm__i32 uvs;
-  psm__i32 indices;
+  psm__i32 idx;
   psm__i32 masks;
   psm__i32 draw_groups;
   psm__i32 draw_items;
@@ -151,8 +151,8 @@ struct psm__art_mesh_src {
   psm__i32 *blend_mode;
   psm__i32 *vertex_count;
   psm__i32 *uv_off;
-  psm__i32 *indices_off;
-  psm__i32 *indices_len;
+  psm__i32 *idx_off;
+  psm__i32 *idx_len;
   psm__i32 *mask_off;
   psm__i32 *mask_len;
 };
@@ -247,7 +247,7 @@ struct psm__uv_src {
 };
 
 struct psm__pos_idx_src {
-  psm__u16 *index;
+  psm__u16 *idx;
 };
 
 struct psm__mask_src {
@@ -286,7 +286,7 @@ struct psm__blend_key_table_src {
 };
 
 struct psm__blend_binding_src {
-  psm__i32 *axis_idx;
+  psm__i32 *key_table_idx;
   psm__i32 *key_bs_off;
   psm__i32 *key_bs_len;
   psm__i32 *bs_constraint_idx_off;
@@ -372,7 +372,7 @@ struct psm__sections {
 
   struct psm__keys_src keys_src;
   struct psm__uv_src uv_src;
-  struct psm__pos_idx_src indices_src;
+  struct psm__pos_idx_src idx_src;
   struct psm__mask_src mask_src;
 
   struct psm__draw_group_src draw_group_src;
@@ -455,8 +455,8 @@ struct psm__moc3_data_v53 {
   D(psm__u8, art_mesh_src.drawable_flag, art_meshes) \
   D(psm__i32, art_mesh_src.vertex_count, art_meshes) \
   D(psm__i32, art_mesh_src.uv_off, art_meshes) \
-  D(psm__i32, art_mesh_src.indices_off, art_meshes) \
-  D(psm__i32, art_mesh_src.indices_len, art_meshes) \
+  D(psm__i32, art_mesh_src.idx_off, art_meshes) \
+  D(psm__i32, art_mesh_src.idx_len, art_meshes) \
   D(psm__i32, art_mesh_src.mask_off, art_meshes) \
   D(psm__i32, art_mesh_src.mask_len, art_meshes) \
   D(const char *, param_src.id_runtime, parameters) \
@@ -482,14 +482,14 @@ struct psm__moc3_data_v53 {
   D(psm__f32, art_mesh_key_src.draw_order, art_mesh_keyforms) \
   D(psm__i32, art_mesh_key_src.key_pos_off, art_mesh_keyforms) \
   D(psm__f32, key_pos_src.xy, keyform_pos) \
-  D(psm__i32, key_table_idx_src.index, key_table_indices) \
+  D(psm__i32, key_table_idx_src.index, key_table_idx) \
   D(psm__i32, binding_src.key_table_idx_off, bindings) \
   D(psm__i32, binding_src.key_table_idx_len, bindings) \
   D(psm__i32, key_table_src.keys_off, key_tables) \
   D(psm__i32, key_table_src.keys_len, key_tables) \
   D(psm__f32, keys_src.key, keys) \
   D(psm__f32, uv_src.xy, uvs) \
-  D(psm__u16, indices_src.index, indices) \
+  D(psm__u16, idx_src.idx, idx) \
   D(psm__i32, mask_src.art_mesh_idx, masks) \
   D(psm__i32, draw_group_src.obj_off, draw_groups) \
   D(psm__i32, draw_group_src.obj_len, draw_groups) \
@@ -534,7 +534,7 @@ struct psm__moc3_data_v53 {
   D(psm__i32, blend_key_table_src.keys_off, blend_key_tables) \
   D(psm__i32, blend_key_table_src.keys_len, blend_key_tables) \
   D(psm__i32, blend_key_table_src.base_key_idx, blend_key_tables) \
-  D(psm__i32, blend_binding_src.axis_idx, blend_bindings) \
+  D(psm__i32, blend_binding_src.key_table_idx, blend_bindings) \
   D(psm__i32, blend_binding_src.key_bs_off, blend_bindings) \
   D(psm__i32, blend_binding_src.key_bs_len, blend_bindings) \
   D(psm__i32, blend_binding_src.bs_constraint_idx_off, blend_bindings) \

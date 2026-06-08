@@ -250,7 +250,7 @@ csmGetDrawableIndexCounts(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
   struct psm__sections *ms = m->source->sections;
-  return ms->art_mesh_src.indices_len;
+  return ms->art_mesh_src.idx_len;
 }
 
 PSMDEF const unsigned short **
