@@ -17,7 +17,7 @@ make_warp_model(struct psm__model *m,
 
   dn->local_idx = 0;
   wc->row = row;
-  wc->column = col;
+  wc->col = col;
   wc->quad_transform = quad;
 
   pos_arr[0] = pos;
