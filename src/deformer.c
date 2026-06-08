@@ -28,13 +28,13 @@ struct psm__warp_cell {
 };
 
 static inline struct psm__warp_basis
-psm__warp_extrap_basis(const psm__f32 *pos,
-    psm__i32 row, psm__i32 column, psm__i32 stride)
+psm__warp_extrap_basis(const psm__f32 *pos, psm__i32 row, psm__i32 col,
+    psm__i32 stride)
 {
   struct psm__vec2 c00 = psm__v2(pos[0], pos[1]);
-  struct psm__vec2 c10 = psm__v2_load(pos, column);
+  struct psm__vec2 c10 = psm__v2_load(pos, col);
   struct psm__vec2 c01 = psm__v2_load(pos, row * stride);
-  struct psm__vec2 c11 = psm__v2_load(pos, row * stride + column);
+  struct psm__vec2 c11 = psm__v2_load(pos, row * stride + col);
 
   struct psm__vec2 d11_00 = psm__v2_sub(c11, c00);
   struct psm__vec2 d10_01 = psm__v2_sub(c10, c01);
@@ -52,11 +52,11 @@ psm__warp_extrap_basis(const psm__f32 *pos,
 }
 
 static inline struct psm__warp_cell
-psm__warp_get_extrapolation_cell(psm__f32 u, psm__f32 v,
-    psm__f32 gu, psm__f32 gv, psm__i32 row, psm__i32 column, psm__i32 stride,
-    const psm__f32 *pos, const struct psm__warp_basis *basis)
+psm__warp_extrap_cell(psm__f32 u, psm__f32 v, psm__f32 gu, psm__f32 gv,
+    psm__i32 row, psm__i32 col, psm__i32 stride, const psm__f32 *pos,
+    const struct psm__warp_basis *basis)
 {
-  psm__f32 fr = (psm__f32)row, fc = (psm__f32)column;
+  psm__f32 fr = (psm__f32)row, fc = (psm__f32)col;
   struct psm__vec2 cen = basis->center;
   struct psm__vec2 du = basis->dpdu;
   struct psm__vec2 dv = basis->dpdv;
@@ -96,7 +96,7 @@ psm__warp_get_extrapolation_cell(psm__f32 u, psm__f32 v,
     }
   } else if (u < 1.0f) {
     psm__i32 cu = (psm__i32)gu;
-    if (cu == column) cu = column - 1;
+    if (cu == col) cu = col - 1;
     cell.fu = gu - (psm__f32)cu;
     psm__f32 uc = (psm__f32)cu / fc;
     psm__f32 un = (psm__f32)(cu + 1) / fc;
@@ -124,7 +124,7 @@ psm__warp_get_extrapolation_cell(psm__f32 u, psm__f32 v,
       cell.p00 = psm__v2_add(psm__v2_sub(cen, psm__v2_scale(du, 2.0f)), dv);
       cell.p10 = psm__v2_add(psm__v2_sub(cen, psm__v2_scale(du, 2.0f)),
           psm__v2_scale(dv, 3.0f));
-      cell.p01 = psm__v2_load(pos, column);
+      cell.p01 = psm__v2_load(pos, col);
       cell.p11 = psm__v2_add(cen, psm__v2_scale(dv, 3.0f));
     } else if (v < 1.0f) {
       psm__i32 cv = (psm__i32)gv;
@@ -133,16 +133,16 @@ psm__warp_get_extrapolation_cell(psm__f32 u, psm__f32 v,
       cell.fu = (u - 1.0f) * 0.5f;
       psm__f32 vc = (psm__f32)cv / fr;
       psm__f32 vn = (psm__f32)(cv + 1) / fr;
-      cell.p00 = psm__v2_load(pos, column + cv * stride);
+      cell.p00 = psm__v2_load(pos, col + cv * stride);
       cell.p10 = psm__v2_add(psm__v2_add(cen, psm__v2_scale(dv, 3.0f)),
           psm__v2_scale(du, vc));
-      cell.p01 = psm__v2_load(pos, column + (cv + 1) * stride);
+      cell.p01 = psm__v2_load(pos, col + (cv + 1) * stride);
       cell.p11 = psm__v2_add(psm__v2_add(cen, psm__v2_scale(dv, 3.0f)),
           psm__v2_scale(du, vn));
     } else {
       cell.fu = (u - 1.0f) * 0.5f;
       cell.fv = (v - 1.0f) * 0.5f;
-      cell.p00 = psm__v2_load(pos, row * stride + column);
+      cell.p00 = psm__v2_load(pos, row * stride + col);
       cell.p10 = psm__v2_add(psm__v2_add(cen, psm__v2_scale(dv, 3.0f)), du);
       cell.p01 = psm__v2_add(psm__v2_add(cen, psm__v2_scale(du, 3.0f)), dv);
       cell.p11 = psm__v2_add(cen,
@@ -177,7 +177,7 @@ psm__warp_transform(struct psm__model *m, psm__i32 di,
   struct psm__warp *wc = &m->deformers.warps.items[si];
   psm__f32 *pos = m->deformers.warps.pos[si];
 
-  psm__i32 row = wc->row, col = wc->column;
+  psm__i32 row = wc->row, col = wc->col;
   psm__i32 is_quad = wc->quad_transform, stride = col + 1;
   psm__f32 fr = (psm__f32)row, fc = (psm__f32)col;
 
@@ -217,8 +217,8 @@ psm__warp_transform(struct psm__model *m, psm__i32 di,
 
       if (uv.x > -2.0f && uv.x < 3.0f && uv.y > -2.0f && uv.y < 3.0f) {
         /* Near-exterior: virtual cell + triangle */
-        struct psm__warp_cell cell = psm__warp_get_extrapolation_cell(
-                uv.x, uv.y, gu, gv, row, col, stride, pos, &basis);
+        struct psm__warp_cell cell = psm__warp_extrap_cell(uv.x, uv.y, gu, gv,
+            row, col, stride, pos, &basis);
         struct psm__vec2 r = psm__triangle_interpolate(&cell);
         psm__v2_store(outputs, i, r);
       } else {
@@ -238,8 +238,7 @@ static void
 psm__rot_transform(struct psm__model *m, psm__i32 di,
     const psm__f32 *inputs, psm__f32 *outputs, psm__i32 count)
 {
-  struct psm__deformer_node *dn = m->deformers.nodes;
-  psm__i32 si = dn[di].local_idx;
+  psm__i32 si = m->deformers.nodes[di].local_idx;
   struct psm__rotation *rc = &m->deformers.rotations.items[si];
 
   psm__f32 base_angle = rc->base_angle;

@@ -756,7 +756,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
         warp->binding = binding;
         warp->row = ws->row[i];
-        warp->column = ws->column[i];
+        warp->col = ws->col[i];
         warp->vertex_count = ws->vertex_count[i];
         if (ver >= csmMocVersion_33 && ws->quad_transform)
           warp->quad_transform = ws->quad_transform[i];

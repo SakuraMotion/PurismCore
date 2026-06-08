@@ -120,7 +120,7 @@ struct psm__warp_src {
   psm__i32 *key_color_off;
   psm__i32 *vertex_count;
   psm__i32 *row;
-  psm__i32 *column;
+  psm__i32 *col;
   psm__i32 *quad_transform;
 };
 
@@ -434,7 +434,7 @@ struct psm__moc3_data_v53 {
   D(psm__i32, warp_src.key_len, warps) \
   D(psm__i32, warp_src.vertex_count, warps) \
   D(psm__i32, warp_src.row, warps) \
-  D(psm__i32, warp_src.column, warps) \
+  D(psm__i32, warp_src.col, warps) \
   D(psm__i32, rotation_src.binding_idx, rotations) \
   D(psm__i32, rotation_src.keyform_off, rotations) \
   D(psm__i32, rotation_src.key_len, rotations) \

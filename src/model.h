@@ -20,9 +20,9 @@ struct psm__model;
 struct psm__interp {
   psm__i32 object_count;
   psm__i32 *max_blend;
+  psm__i32 *blend_count;
   psm__i32 tmp_len;
   psm__f32 *tmp;
-  psm__i32 *blend_count;
   psm__f32 *weights;
 };
 
@@ -113,7 +113,7 @@ struct psm__deformer_node {
 struct psm__warp {
   struct psm__binding *binding;
   psm__i32 row;
-  psm__i32 column;
+  psm__i32 col;
   bool quad_transform;
   psm__i32 vertex_count;
 };

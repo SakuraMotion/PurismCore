@@ -242,7 +242,7 @@ done_nonnull:
     psm__model_check_range(src->warp_src.keyform_off,
         src->warp_src.key_len, i, cnt->warp_keyforms);
     psm__i32 row = src->warp_src.row[i];
-    psm__i32 col = src->warp_src.column[i];
+    psm__i32 col = src->warp_src.col[i];
     psm__i32 vc = src->warp_src.vertex_count[i];
     PSM__FAIL(row <= 0 || col <= 0, PSM__ERR_FILE_CORRUPT,
         "warp[%d] grid row=%d col=%d", i, row, col);
