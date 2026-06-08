@@ -89,7 +89,7 @@ psm__gather_offscreens(struct psm__model *m)
   }
 
   /* Colors */
-  psm__i32 *col_begin = ms->offscreen_key_src.key_mul_color_off;
+  psm__i32 *col_off = ms->offscreen_key_src.key_mul_color_off;
   psm__f32 *mr = ms->keyform_mul_color_src.r;
   psm__f32 *mg = ms->keyform_mul_color_src.g;
   psm__f32 *mb = ms->keyform_mul_color_src.b;
@@ -97,7 +97,7 @@ psm__gather_offscreens(struct psm__model *m)
   psm__f32 *sg = ms->keyform_scr_color_src.g;
   psm__f32 *sb = ms->keyform_scr_color_src.b;
 
-  if (!col_begin || !mr || !mg || !mb || !sr || !sg || !sb)
+  if (!col_off || !mr || !mg || !mb || !sr || !sg || !sb)
     return;
 
   psm__i32 max_kf_colors = ms->count_info->keyform_mul_colors;
@@ -118,7 +118,7 @@ psm__gather_offscreens(struct psm__model *m)
     if (ki >= 0 && nc > 0) {
       if ((psm__u32)ki >= (psm__u32)max_keyforms)
         goto skip_color;
-      psm__i32 cb = col_begin[ki];
+      psm__i32 cb = col_off[ki];
       for (psm__i32 j = 0; j < nc; j++) {
         psm__i32 idx = b->keyform_idx[j] + cb;
         if ((psm__u32)idx >= (psm__u32)max_kf_colors)

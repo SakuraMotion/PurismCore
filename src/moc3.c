@@ -255,11 +255,11 @@ done_nonnull:
 
   /* Warp deformer keyform positions */
   for (psm__i32 i = 0; i < cnt->warps; i++) {
-    psm__i32 begin = src->warp_src.keyform_off[i];
+    psm__i32 off = src->warp_src.keyform_off[i];
     psm__i32 count = src->warp_src.key_len[i];
     psm__i32 vc = src->warp_src.vertex_count[i];
     for (psm__i32 j = 0; j < count; j++) {
-      psm__i32 po = src->warp_key_src.key_pos_off[begin + j];
+      psm__i32 po = src->warp_key_src.key_pos_off[off + j];
       PSM__FAIL(po < 0 || (psm__u32)po + (psm__u32)vc >
               (psm__u32)cnt->keyform_pos, PSM__ERR_FILE_CORRUPT,
           "warp[%d] kf[%d] pos_off=%d vc=%d max=%d",
@@ -938,16 +938,16 @@ skip_mask_processing:
   if (src->canvas_info && (src->canvas_info->flag &
           PSM__CANVAS_FLAG_Y_REVERSED) == 0) {
     psm__u16 *pos_idx = src->idx_src.idx;
-    psm__i32 *idx_begin = src->art_mesh_src.idx_off;
+    psm__i32 *idx_off = src->art_mesh_src.idx_off;
     psm__i32 *idx_cnt = src->art_mesh_src.idx_len;
 
-    if (!pos_idx || !idx_begin || !idx_cnt)
+    if (!pos_idx || !idx_off || !idx_cnt)
       goto skip_y_reversal;
 
     count = cnt->art_meshes;
     for (psm__i32 i = 0; i < count; i++) {
       psm__i32 ic = idx_cnt[i];
-      psm__i32 ib = idx_begin[i];
+      psm__i32 ib = idx_off[i];
       if (ic <= 0 || !psm__check_offset_range(ib, ic, cnt->idx))
         continue;
       psm__u16 *idx = &pos_idx[ib];

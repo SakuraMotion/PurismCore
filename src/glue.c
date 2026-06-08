@@ -26,9 +26,9 @@ psm__gather_glues(struct psm__model *m)
   if (!items)
     return;
   struct psm__sections *ms = m->source->sections;
-  psm__i32 *keyform_begin_idx = ms->glue_src.keyform_off;
+  psm__i32 *keyform_base_idx = ms->glue_src.keyform_off;
   psm__f32 *intensity_src = ms->glue_key_src.intensity;
-  if (!keyform_begin_idx || !intensity_src)
+  if (!keyform_base_idx || !intensity_src)
     return;
 
   struct psm__binding *bindings[count];
@@ -38,7 +38,7 @@ psm__gather_glues(struct psm__model *m)
   struct psm__gather_channel ch[] = {
     { intensity_src, m->glues.keydata.intensity },
   };
-  psm__gather_scalars(count, bindings, keyform_begin_idx,
+  psm__gather_scalars(count, bindings, keyform_base_idx,
       ms->count_info->glue_keyforms, &m->glues.keydata.interp, ch, 1);
 }
 

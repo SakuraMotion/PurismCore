@@ -696,17 +696,17 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
       param->snap_eps = powf(0.1f, (psm__f32)dp);
       param->interp_eps = param->snap_eps * 1.5f;
 
-      psm__i32 kt_begin = ms->param_src.key_table_off[i];
+      psm__i32 kt_off = ms->param_src.key_table_off[i];
       psm__i32 kt_count = ms->param_src.key_table_len[i];
 
       {
-        int rc = psm__valid_opt_range(kt_begin, kt_count, cnt->key_tables);
+        int rc = psm__valid_opt_range(kt_off, kt_count, cnt->key_tables);
         if (rc < 0)
           PSM__LOGF("param[%d]: binding range "
-              "[%d, %d) OOB (max %d)", i, kt_begin, kt_begin + kt_count,
+              "[%d, %d) OOB (max %d)", i, kt_off, kt_off + kt_count,
               cnt->key_tables);
         if (rc == 1) {
-          param->key_tables = &m->key_tables.items[kt_begin];
+          param->key_tables = &m->key_tables.items[kt_off];
           param->key_table_len = kt_count;
         } else {
           param->key_tables = NULL;
@@ -956,7 +956,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         struct psm__draw_group *grp = &m->draw_groups.groups[i];
         psm__i32 max_order = gs->max_order[i];
         psm__i32 min_order = gs->min_order[i];
-        psm__i32 begin_idx = gs->obj_off[i];
+        psm__i32 base_idx = gs->obj_off[i];
 
         grp->total_count = gs->obj_total_count[i];
         grp->max_order = max_order;
@@ -964,17 +964,17 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         grp->order_level = psm__safe_order_level(max_order, min_order);
         grp->cursor = 0;
 
-        if (!psm__valid_range(begin_idx, grp->count, cnt->draw_items)) {
+        if (!psm__valid_range(base_idx, grp->count, cnt->draw_items)) {
           PSM__LOGF("draw_order_group[%d]: "
-              "range [%d, %d) OOB (max %d)", i, begin_idx,
-              begin_idx + grp->count, cnt->draw_items);
+              "range [%d, %d) OOB (max %d)", i, base_idx,
+              base_idx + grp->count, cnt->draw_items);
           grp->count = 0;
         } else {
           for (psm__i32 j = 0; j < grp->count; j++) {
             struct psm__draw_item *item = &grp->items[j];
-            item->object_type = os->type[begin_idx + j];
-            item->object_idx = os->idx[begin_idx + j];
-            item->group_idx = os->self_group_idx[begin_idx + j];
+            item->object_type = os->type[base_idx + j];
+            item->object_idx = os->idx[base_idx + j];
+            item->group_idx = os->self_group_idx[base_idx + j];
             item->draw_order = 0;
           }
         }
@@ -1098,11 +1098,11 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
           ms->param_src.blend_key_table_off &&
           m->blend_key_tables.items) {
         psm__i32 bs_cnt = ms->param_src.blend_key_table_len[i];
-        psm__i32 bs_begin = ms->param_src.blend_key_table_off[i];
-        if (psm__valid_opt_range(bs_begin,
+        psm__i32 bs_off = ms->param_src.blend_key_table_off[i];
+        if (psm__valid_opt_range(bs_off,
                 bs_cnt, cnt->blend_key_tables) == 1) {
           pc->blend_key_table_len = bs_cnt;
-          pc->blend_key_tables = &m->blend_key_tables.items[bs_begin];
+          pc->blend_key_tables = &m->blend_key_tables.items[bs_off];
         }
       }
     }
@@ -1307,25 +1307,25 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     }
   } else {
     for (psm__i32 i = 0; i < cnt->parameters; i++) {
-      psm__i32 kt_begin = ms->param_src.key_table_off[i];
+      psm__i32 kt_off = ms->param_src.key_table_off[i];
       psm__i32 kt_count = ms->param_src.key_table_len[i];
 
-      if (kt_begin < 0 || kt_count <= 0 || !ms->keys_src.key ||
+      if (kt_off < 0 || kt_count <= 0 || !ms->keys_src.key ||
           !ms->key_table_src.keys_off || !ms->key_table_src.keys_len) {
         m->param_keys.keys[i] = NULL;
         m->param_keys.key_counts[i] = 0;
         continue;
       }
-      if (!psm__valid_range(kt_begin, kt_count, cnt->key_tables)) {
-        PSM__LOGF("param_keys fallback[%d]: kt_begin %d OOB (max %d)",
-            i, kt_begin, cnt->key_tables);
+      if (!psm__valid_range(kt_off, kt_count, cnt->key_tables)) {
+        PSM__LOGF("param_keys fallback[%d]: kt_off %d OOB (max %d)",
+            i, kt_off, cnt->key_tables);
         m->param_keys.keys[i] = NULL;
         m->param_keys.key_counts[i] = 0;
         continue;
       }
-      psm__i32 best = kt_begin, best_kc = 0;
+      psm__i32 best = kt_off, best_kc = 0;
       for (psm__i32 j = 0; j < kt_count; j++) {
-        psm__i32 idx = kt_begin + j;
+        psm__i32 idx = kt_off + j;
         if (idx < cnt->key_tables && ms->key_table_src.keys_len[idx]
                 > best_kc) {
           best_kc = ms->key_table_src.keys_len[idx];

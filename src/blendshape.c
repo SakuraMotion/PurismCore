@@ -19,20 +19,20 @@ psm__blend_shape_interp_f32(const struct psm__blend_binding *binding,
     const psm__f32 *keyform_src)
 {
   psm__i32 blend_count = binding->blend_count;
-  psm__i32 begin = binding->key_src_off;
+  psm__i32 off = binding->key_src_off;
   psm__f32 value;
 
   switch (blend_count) {
   case 0:
     return 0.0f;
   case 1: {
-    psm__i32 idx0 = binding->keyform_idx[0] + begin;
+    psm__i32 idx0 = binding->keyform_idx[0] + off;
     value = keyform_src[idx0] * binding->weights[0];
     break;
   }
   case 2: {
-    psm__i32 idx0 = binding->keyform_idx[0] + begin;
-    psm__i32 idx1 = binding->keyform_idx[1] + begin;
+    psm__i32 idx0 = binding->keyform_idx[0] + off;
+    psm__i32 idx1 = binding->keyform_idx[1] + off;
     value = keyform_src[idx0] * binding->weights[0]
           + keyform_src[idx1] * binding->weights[1];
     break;
@@ -121,12 +121,12 @@ psm__blend_positions(const struct psm__model *m, psm__i32 count,
       if (blend_count == 0)
         continue;
 
-      psm__i32 begin = binds[j].key_src_off;
+      psm__i32 off = binds[j].key_src_off;
       psm__f32 cw = binds[j].weight;
 
       switch (blend_count) {
       case 1: {
-        psm__i32 ki = binds[j].keyform_idx[0] + begin;
+        psm__i32 ki = binds[j].keyform_idx[0] + off;
         psm__i32 po = keyform_pos_off[ki];
         psm__f32 *p0 = &pos_xy[po];
         psm__f32 w0 = binds[j].weights[0];
@@ -135,8 +135,8 @@ psm__blend_positions(const struct psm__model *m, psm__i32 count,
         break;
       }
       case 2: {
-        psm__i32 ki0 = binds[j].keyform_idx[0] + begin;
-        psm__i32 ki1 = binds[j].keyform_idx[1] + begin;
+        psm__i32 ki0 = binds[j].keyform_idx[0] + off;
+        psm__i32 ki1 = binds[j].keyform_idx[1] + off;
         psm__i32 po0 = keyform_pos_off[ki0];
         psm__i32 po1 = keyform_pos_off[ki1];
         psm__f32 *p0 = &pos_xy[po0];
@@ -178,13 +178,13 @@ psm__blend_colors(psm__i32 count, const struct psm__blend_shape *shapes,
         if (blend_count == 0)
           continue;
 
-        psm__i32 begin = binds[j].key_src_off;
+        psm__i32 off = binds[j].key_src_off;
         psm__f32 cw = binds[j].weight;
         psm__f32 r, g, b;
 
         switch (blend_count) {
         case 1: {
-          psm__i32 ki = binds[j].keyform_idx[0] + begin;
+          psm__i32 ki = binds[j].keyform_idx[0] + off;
           psm__i32 ci = keyform_color_off[ki];
           psm__f32 w0 = binds[j].weights[0];
           r = src_r[ci] * w0;
@@ -193,8 +193,8 @@ psm__blend_colors(psm__i32 count, const struct psm__blend_shape *shapes,
           break;
         }
         case 2: {
-          psm__i32 ki0 = binds[j].keyform_idx[0] + begin;
-          psm__i32 ki1 = binds[j].keyform_idx[1] + begin;
+          psm__i32 ki0 = binds[j].keyform_idx[0] + off;
+          psm__i32 ki1 = binds[j].keyform_idx[1] + off;
           psm__i32 ci0 = keyform_color_off[ki0];
           psm__i32 ci1 = keyform_color_off[ki1];
           psm__f32 w0 = binds[j].weights[0];

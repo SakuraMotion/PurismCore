@@ -41,18 +41,18 @@ setting `ABI=v5` (e.g. `make ABI=v5 OS=windows`).
 The following functions are only available in the v6 ABI.
 
 - `csmGetParameterRepeats` - per-parameter repeat flag
-- `csmGetPartOffscreenIndices` — part-to-offscreen mapping
-- `csmGetDrawableBlendModes` — extended blend mode enum per drawable
-- `csmGetRenderOrders` — replaces `csmGetDrawableRenderOrders`
-- `csmGetOffscreenCount` — number of offscreen surfaces
-- `csmGetOffscreenBlendModes` — blend mode per offscreen
-- `csmGetOffscreenOpacities` — opacity per offscreen
-- `csmGetOffscreenOwnerIndices` — owner part per offscreen
-- `csmGetOffscreenMultiplyColors` — multiply color per offscreen
-- `csmGetOffscreenScreenColors` — screen color per offscreen
-- `csmGetOffscreenMaskCounts` — mask count per offscreen
-- `csmGetOffscreenMasks` — mask drawable indices per offscreen
-- `csmGetOffscreenConstantFlags` — constant flags per offscreen
+- `csmGetPartOffscreenIndices` - part-to-offscreen mapping
+- `csmGetDrawableBlendModes` - extended blend mode enum per drawable
+- `csmGetRenderOrders` - replaces `csmGetDrawableRenderOrders`
+- `csmGetOffscreenCount` - number of offscreen surfaces
+- `csmGetOffscreenBlendModes` - blend mode per offscreen
+- `csmGetOffscreenOpacities` - opacity per offscreen
+- `csmGetOffscreenOwnerIndices` - owner part per offscreen
+- `csmGetOffscreenMultiplyColors` - multiply color per offscreen
+- `csmGetOffscreenScreenColors` - screen color per offscreen
+- `csmGetOffscreenMaskCounts` - mask count per offscreen
+- `csmGetOffscreenMasks` - mask drawable indices per offscreen
+- `csmGetOffscreenConstantFlags` - constant flags per offscreen
 
 #### Blend Modes
 
