@@ -142,7 +142,7 @@ psm__resolve_params(struct psm__params *parameters)
 }
 
 PSM__DEF void
-psm__resolve_axes(struct psm__model *m)
+psm__resolve_key_tables(struct psm__model *m)
 {
   psm__i32 param_count = m->params.count;
   struct psm__param *param_items = m->params.items;
@@ -159,8 +159,8 @@ psm__resolve_axes(struct psm__model *m)
        * Unchanged parameter: clear dirty flags on all its bindings
        * so downstream keyform updates don't re-evaluate them.
        */
-      psm__i32 bc = param->axis_count;
-      struct psm__axis *bs = param->axes;
+      psm__i32 bc = param->key_table_count;
+      struct psm__key_table *bs = param->key_tables;
       if (bs) {
         for (psm__i32 j = 0; j < bc; j++) {
           bs[j].idx_dirty = 0;
@@ -170,15 +170,15 @@ psm__resolve_axes(struct psm__model *m)
       continue;
     }
 
-    psm__i32 binding_count = param->axis_count;
-    struct psm__axis *bindings = param->axes;
+    psm__i32 binding_count = param->key_table_count;
+    struct psm__key_table *bindings = param->key_tables;
     if (!bindings || binding_count <= 0)
       continue;
     psm__f32 value = param->value;
     psm__f32 snap_eps = param->snap_eps, interp_eps = param->interp_eps;
 
     for (psm__i32 j = 0; j < binding_count; j++) {
-      struct psm__axis *binding = &bindings[j];
+      struct psm__key_table *binding = &bindings[j];
       if (!binding->keys || binding->key_count <= 0)
         continue;
 
@@ -209,7 +209,7 @@ psm__resolve_axes(struct psm__model *m)
 }
 
 PSM__DEF void
-psm__resolve_blend_axes(struct psm__model *m)
+psm__resolve_blend_key_tables(struct psm__model *m)
 {
   psm__u8 version = m->source->header->version;
   if (version < csmMocVersion_42)
@@ -228,23 +228,23 @@ psm__resolve_blend_axes(struct psm__model *m)
     if (params[param_i].type != csmParameterType_BlendShape)
       continue;
 
-    psm__i32 bs_count = params[param_i].blend_axis_count;
+    psm__i32 bs_count = params[param_i].blend_key_table_count;
     if (bs_count <= 0)
       continue;
 
-    struct psm__blend_axis *blend_axes = params[param_i].blend_axes;
-    if (!blend_axes)
+    struct psm__blend_key_table *blend_key_tables = params[param_i].blend_key_tables;
+    if (!blend_key_tables)
       continue;
     psm__f32 value = params[param_i].value;
 
     if (force_update || params[param_i].dirty) {
       for (psm__i32 bs_i = 0; bs_i < bs_count; bs_i++) {
-        psm__i32 key_count = blend_axes[bs_i].key_count;
+        psm__i32 key_count = blend_key_tables[bs_i].key_count;
         psm__u32 index = 0;
         psm__f32 weight = 0.0f;
 
         if (key_count >= 2) {
-          psm__f32 *keys = blend_axes[bs_i].keys;
+          psm__f32 *keys = blend_key_tables[bs_i].keys;
           if (keys && value > keys[0]) {
             /* Find upper bound: first key > value */
             for (index = 1;
@@ -255,23 +255,23 @@ psm__resolve_blend_axes(struct psm__model *m)
           }
         }
 
-        psm__u32 old_index = blend_axes[bs_i].idx;
-        psm__f32 old_weight = blend_axes[bs_i].weight;
+        psm__u32 old_index = blend_key_tables[bs_i].idx;
+        psm__f32 old_weight = blend_key_tables[bs_i].weight;
         bool idx_dirty = (old_index != index),
                     weight_dirty = (old_weight != weight);
         if (weight_dirty)
           idx_dirty = weight == 0.0f ||
               old_weight == 0.0f || old_index != index;
 
-        blend_axes[bs_i].idx_dirty = idx_dirty;
-        blend_axes[bs_i].weight_dirty = weight_dirty;
-        blend_axes[bs_i].weight = weight;
-        blend_axes[bs_i].idx = index;
+        blend_key_tables[bs_i].idx_dirty = idx_dirty;
+        blend_key_tables[bs_i].weight_dirty = weight_dirty;
+        blend_key_tables[bs_i].weight = weight;
+        blend_key_tables[bs_i].idx = index;
       }
     } else {
       for (psm__i32 bs_i = 0; bs_i < bs_count; bs_i++) {
-        blend_axes[bs_i].idx_dirty = 0;
-        blend_axes[bs_i].weight_dirty = 0;
+        blend_key_tables[bs_i].idx_dirty = 0;
+        blend_key_tables[bs_i].weight_dirty = 0;
       }
     }
   }
@@ -290,12 +290,12 @@ psm__resolve_bindings(struct psm__model *m)
   bool force_update = m->force_update;
 
   /* Get valid pointer range for parameter binding caches */
-  struct psm__axis *pb_base = m->axes.items;
-  struct psm__axis *pb_end = pb_base + m->axes.count;
+  struct psm__key_table *pb_base = m->key_tables.items;
+  struct psm__key_table *pb_end = pb_base + m->key_tables.count;
 
   for (psm__i32 bi = 0; bi < count; bi++) {
-    psm__i32 binding_count = binds[bi].axis_count;
-    struct psm__axis **bindings = binds[bi].axes;
+    psm__i32 binding_count = binds[bi].key_table_count;
+    struct psm__key_table **bindings = binds[bi].key_tables;
 
     bool idx_dirty = false;
     bool weight_dirty = false;
@@ -311,7 +311,7 @@ psm__resolve_bindings(struct psm__model *m)
     }
 
     for (psm__i32 i = 0; i < binding_count; i++) {
-      struct psm__axis *binding = bindings[i];
+      struct psm__key_table *binding = bindings[i];
 
       /* Validate pointer is within expected range */
       if (binding < pb_base || binding >= pb_end) {
@@ -378,15 +378,15 @@ psm__resolve_bindings(struct psm__model *m)
 
     /*
      * Combo builder. Produces all 2^N keyform
-     * index + weight combinations from N parameter axes.
+     * index + weight combinations from N key tables.
      * index_stride tracks the key counts.
      * combo_stride tracks which bit selects upper vs lower
-     * keyform for each active axis.
+     * keyform for each active key table.
      */
     psm__u32 index_stride = 1, combo_stride = 1;
 
     for (psm__i32 i = 0; i < binding_count; i++) {
-      struct psm__axis *binding = bindings[i];
+      struct psm__key_table *binding = bindings[i];
       psm__i32 index = binding->idx;
       psm__i32 key_count = binding->key_count;
       psm__f32 weight = binding->weight;
@@ -439,7 +439,7 @@ psm__resolve_blend_bindings(struct psm__model *m)
   bool force_update = m->force_update;
 
   for (psm__i32 bi = 0; bi < count; bi++) {
-    struct psm__blend_axis *binding = binds[bi].axis;
+    struct psm__blend_key_table *binding = binds[bi].key_table;
     if (!binding)
       continue;
 
@@ -594,12 +594,12 @@ PSMDEF const int *
 csmGetParameterKeyCounts(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  return m->param_ext.key_counts;
+  return m->param_keys.key_counts;
 }
 
 PSMDEF const float **
 csmGetParameterKeyValues(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  return (const float **)m->param_ext.keys;
+  return (const float **)m->param_keys.keys;
 }

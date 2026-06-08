@@ -12,8 +12,8 @@
 #include "model.h"
 
 PSM__DEF void psm__resolve_params(struct psm__params *);
-PSM__DEF void psm__resolve_axes(struct psm__model *);
-PSM__DEF void psm__resolve_blend_axes(struct psm__model *);
+PSM__DEF void psm__resolve_key_tables(struct psm__model *);
+PSM__DEF void psm__resolve_blend_key_tables(struct psm__model *);
 PSM__DEF void psm__resolve_bindings(struct psm__model *);
 PSM__DEF void psm__resolve_blend_bindings(struct psm__model *);
 

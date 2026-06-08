@@ -116,7 +116,7 @@ psm__verify_count_info(const struct psm__count_info *cnt)
   PSM__FAILM(cnt->parts < 0 || cnt->deformers < 0 ||
       cnt->warps < 0 || cnt->rotations < 0 ||
       cnt->art_meshes < 0 || cnt->parameters < 0 ||
-      cnt->bindings < 0 || cnt->axes < 0 ||
+      cnt->bindings < 0 || cnt->key_tables < 0 ||
       cnt->keys < 0 || cnt->uvs < 0 || cnt->indices < 0 || cnt->masks < 0 ||
       cnt->glues < 0 || cnt->kf_pos < 0 || cnt->part_kf < 0 ||
       cnt->warp_kf < 0 || cnt->rotation_kf < 0 ||
@@ -185,7 +185,7 @@ done_nonnull:
     psm__i32 _bi = (obj_src).binding_idx[_i]; \
     if (_bi < 0 || _bi >= cnt->bindings) continue; \
     psm__i32 _pc = psm__clamp_i32(\
-        src->binding_src.axis_idx_count[_bi], 0, PSM__MAX_AXES); \
+        src->binding_src.key_table_idx_count[_bi], 0, PSM__MAX_KEY_TABLES); \
     psm__i32 _mc = 1 << _pc; \
     psm__i32 _kb = (obj_src).keyform_offset[_i]; \
     PSM__FAIL(!psm__valid_range(_kb, _mc, (kf_total)), \
@@ -309,29 +309,29 @@ done_nonnull:
 
   /* Parameter sources */
   for (psm__i32 i = 0; i < cnt->parameters; i++) {
-    psm__model_check_range(src->param_src.axis_begin, src->param_src.axis_count,
-        i, cnt->axes);
+    psm__model_check_range(src->param_src.key_table_begin, src->param_src.key_table_count,
+        i, cnt->key_tables);
   }
 
   /* Keyform binding sources */
   for (psm__i32 i = 0; i < cnt->bindings; i++) {
-    psm__model_check_range(src->binding_src.axis_idx_begin,
-        src->binding_src.axis_idx_count, i, cnt->axis_indices);
-    psm__i32 pc = src->binding_src.axis_idx_count[i];
-    PSM__FAIL(pc < 0 || pc > PSM__MAX_AXES, PSM__ERR_FILE_CORRUPT,
+    psm__model_check_range(src->binding_src.key_table_idx_begin,
+        src->binding_src.key_table_idx_count, i, cnt->key_table_indices);
+    psm__i32 pc = src->binding_src.key_table_idx_count[i];
+    PSM__FAIL(pc < 0 || pc > PSM__MAX_KEY_TABLES, PSM__ERR_FILE_CORRUPT,
         "binding[%d] param_count=%d oob", i, pc);
   }
 
   /* Parameter binding index sources */
-  for (psm__i32 i = 0; i < cnt->axis_indices; i++) {
-    psm__model_check_index(src->axis_idx_src.index,
-        i, cnt->axes);
+  for (psm__i32 i = 0; i < cnt->key_table_indices; i++) {
+    psm__model_check_index(src->key_table_idx_src.index,
+        i, cnt->key_tables);
   }
 
   /* Parameter binding sources */
-  for (psm__i32 i = 0; i < cnt->axes; i++) {
-    psm__model_check_range(src->axis_src.keys_begin,
-        src->axis_src.keys_count, i, cnt->keys);
+  for (psm__i32 i = 0; i < cnt->key_tables; i++) {
+    psm__model_check_range(src->key_table_src.keys_begin,
+        src->key_table_src.keys_count, i, cnt->keys);
   }
 
   /* Drawable mask sources */
@@ -425,27 +425,27 @@ done_nonnull:
 
   /* Parameter extension sources */
   for (psm__i32 i = 0; i < cnt->parameters; i++) {
-    psm__model_check_range(src->param_ext_src.keys_begin,
-        src->param_ext_src.keys_count, i, cnt->keys);
+    psm__model_check_range(src->param_keys_src.keys_begin,
+        src->param_keys_src.keys_count, i, cnt->keys);
   }
 
   /* Blend shape parameter binding sources */
   for (psm__i32 i = 0;
-       i < cnt->blend_axes; i++) {
-    psm__model_check_range(src->blend_axis_src.keys_begin,
-        src->blend_axis_src.keys_count, i, cnt->keys);
+       i < cnt->blend_key_tables; i++) {
+    psm__model_check_range(src->blend_key_table_src.keys_begin,
+        src->blend_key_table_src.keys_count, i, cnt->keys);
   }
 
   /* Parameter blend shape binding indices */
   for (psm__i32 i = 0; i < cnt->parameters; i++) {
-    psm__model_check_range(src->param_src.blend_axis_begin,
-        src->param_src.blend_axis_count, i, cnt->blend_axes);
+    psm__model_check_range(src->param_src.blend_key_table_begin,
+        src->param_src.blend_key_table_count, i, cnt->blend_key_tables);
   }
 
   /* Blend shape keyform binding sources */
   for (psm__i32 i = 0; i < cnt->blend_bindings; i++) {
     psm__model_check_index(src->blend_binding_src.axis_idx,
-        i, cnt->blend_axes);
+        i, cnt->blend_key_tables);
     psm__model_check_range(src->blend_binding_src.bs_constraint_idx_begin,
         src->blend_binding_src.bs_constraint_idx_count,
         i, cnt->bs_constraint_idx);

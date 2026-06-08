@@ -50,9 +50,9 @@ struct psm__count_info {
   psm__i32 rotation_kf;
   psm__i32 art_mesh_kf;
   psm__i32 kf_pos;
-  psm__i32 axis_indices;
+  psm__i32 key_table_indices;
   psm__i32 bindings;
-  psm__i32 axes;
+  psm__i32 key_tables;
   psm__i32 keys;
   psm__i32 uvs;
   psm__i32 indices;
@@ -64,7 +64,7 @@ struct psm__count_info {
   psm__i32 glue_kf;
   psm__i32 kf_mul_colors;
   psm__i32 kf_scr_colors;
-  psm__i32 blend_axes;
+  psm__i32 blend_key_tables;
   psm__i32 blend_bindings;
   psm__i32 bs_warps;
   psm__i32 bs_art_meshes;
@@ -166,10 +166,10 @@ struct psm__param_src {
   psm__i32 *repeat;
   psm__i32 *decimal_places;
   psm__i32 *type;
-  psm__i32 *axis_begin;
-  psm__i32 *axis_count;
-  psm__i32 *blend_axis_begin;
-  psm__i32 *blend_axis_count;
+  psm__i32 *key_table_begin;
+  psm__i32 *key_table_count;
+  psm__i32 *blend_key_table_begin;
+  psm__i32 *blend_key_table_count;
 };
 
 struct psm__glue_src {
@@ -224,16 +224,16 @@ struct psm__key_pos_src {
   psm__f32 *xy;
 };
 
-struct psm__axis_idx_src {
+struct psm__key_table_idx_src {
   psm__i32 *index;
 };
 
 struct psm__binding_src {
-  psm__i32 *axis_idx_begin;
-  psm__i32 *axis_idx_count;
+  psm__i32 *key_table_idx_begin;
+  psm__i32 *key_table_idx_count;
 };
 
-struct psm__axis_src {
+struct psm__key_table_src {
   psm__i32 *keys_begin;
   psm__i32 *keys_count;
 };
@@ -273,13 +273,13 @@ struct psm__glue_info_src {
   psm__u16 *position_idx;
 };
 
-struct psm__param_ext_src {
+struct psm__param_keys_src {
   const psm__f32 **key_runtime;
   psm__i32 *keys_begin;
   psm__i32 *keys_count;
 };
 
-struct psm__blend_axis_src {
+struct psm__blend_key_table_src {
   psm__i32 *keys_begin;
   psm__i32 *keys_count;
   psm__i32 *base_key_idx;
@@ -347,7 +347,7 @@ struct psm__sections {
   struct psm__art_mesh_src art_mesh_src;
 
   struct psm__param_src param_src;
-  struct psm__param_ext_src param_ext_src;
+  struct psm__param_keys_src param_keys_src;
 
   struct psm__part_key_src part_key_src;
   struct psm__warp_key_src warp_key_src;
@@ -355,11 +355,11 @@ struct psm__sections {
   struct psm__art_mesh_key_src art_mesh_key_src;
 
   struct psm__key_pos_src key_pos_src;
-  struct psm__axis_src axis_src;
-  struct psm__axis_idx_src axis_idx_src;
+  struct psm__key_table_src key_table_src;
+  struct psm__key_table_idx_src key_table_idx_src;
   struct psm__binding_src binding_src;
 
-  struct psm__blend_axis_src blend_axis_src;
+  struct psm__blend_key_table_src blend_key_table_src;
   struct psm__blend_binding_src blend_binding_src;
   struct psm__blend_src bs_part_src;
   struct psm__blend_src bs_warp_src;
@@ -466,8 +466,8 @@ struct psm__moc3_data_v53 {
   D(psm__f32, param_src.default_value, parameters) \
   D(psm__i32, param_src.repeat, parameters) \
   D(psm__i32, param_src.decimal_places, parameters) \
-  D(psm__i32, param_src.axis_begin, parameters) \
-  D(psm__i32, param_src.axis_count, parameters) \
+  D(psm__i32, param_src.key_table_begin, parameters) \
+  D(psm__i32, param_src.key_table_count, parameters) \
   D(psm__f32, part_key_src.draw_order, part_kf) \
   D(psm__f32, warp_key_src.opacity, warp_kf) \
   D(psm__i32, warp_key_src.key_pos_offset, warp_kf) \
@@ -482,11 +482,11 @@ struct psm__moc3_data_v53 {
   D(psm__f32, art_mesh_key_src.draw_order, art_mesh_kf) \
   D(psm__i32, art_mesh_key_src.key_pos_offset, art_mesh_kf) \
   D(psm__f32, key_pos_src.xy, kf_pos) \
-  D(psm__i32, axis_idx_src.index, axis_indices) \
-  D(psm__i32, binding_src.axis_idx_begin, bindings) \
-  D(psm__i32, binding_src.axis_idx_count, bindings) \
-  D(psm__i32, axis_src.keys_begin, axes) \
-  D(psm__i32, axis_src.keys_count, axes) \
+  D(psm__i32, key_table_idx_src.index, key_table_indices) \
+  D(psm__i32, binding_src.key_table_idx_begin, bindings) \
+  D(psm__i32, binding_src.key_table_idx_count, bindings) \
+  D(psm__i32, key_table_src.keys_begin, key_tables) \
+  D(psm__i32, key_table_src.keys_count, key_tables) \
   D(psm__f32, keys_src.key, keys) \
   D(psm__f32, uv_src.xy, uvs) \
   D(psm__u16, indices_src.index, indices) \
@@ -516,9 +516,9 @@ struct psm__moc3_data_v53 {
   D(psm__i32, warp_src.quad_transform, warps)
 
 #define PSM__SECTIONS_V42(S, D) \
-  D(const psm__f32 *, param_ext_src.key_runtime, parameters) \
-  D(psm__i32, param_ext_src.keys_begin, parameters) \
-  D(psm__i32, param_ext_src.keys_count, parameters) \
+  D(const psm__f32 *, param_keys_src.key_runtime, parameters) \
+  D(psm__i32, param_keys_src.keys_begin, parameters) \
+  D(psm__i32, param_keys_src.keys_count, parameters) \
   D(psm__i32, warp_src.key_color_offset, warps) \
   D(psm__i32, rotation_src.key_color_offset, rotations) \
   D(psm__i32, art_mesh_src.key_color_offset, art_meshes) \
@@ -529,11 +529,11 @@ struct psm__moc3_data_v53 {
   D(psm__f32, kf_scr_color_src.g, kf_scr_colors) \
   D(psm__f32, kf_scr_color_src.b, kf_scr_colors) \
   D(psm__i32, param_src.type, parameters) \
-  D(psm__i32, param_src.blend_axis_begin, parameters) \
-  D(psm__i32, param_src.blend_axis_count, parameters) \
-  D(psm__i32, blend_axis_src.keys_begin, blend_axes) \
-  D(psm__i32, blend_axis_src.keys_count, blend_axes) \
-  D(psm__i32, blend_axis_src.base_key_idx, blend_axes) \
+  D(psm__i32, param_src.blend_key_table_begin, parameters) \
+  D(psm__i32, param_src.blend_key_table_count, parameters) \
+  D(psm__i32, blend_key_table_src.keys_begin, blend_key_tables) \
+  D(psm__i32, blend_key_table_src.keys_count, blend_key_tables) \
+  D(psm__i32, blend_key_table_src.base_key_idx, blend_key_tables) \
   D(psm__i32, blend_binding_src.axis_idx, blend_bindings) \
   D(psm__i32, blend_binding_src.key_bs_begin, blend_bindings) \
   D(psm__i32, blend_binding_src.key_bs_count, blend_bindings) \

@@ -73,7 +73,7 @@ psm__i32 psm__clamp_i32(psm__i32 v, psm__i32 lo, psm__i32 hi)
  * floats. On 64-bit platforms this is 2 (one pointer = two floats).
  */
 #define PSM__PTR_FLOAT_RATIO (sizeof(void *) / sizeof(psm__f32))
-#define PSM__MAX_AXES 20
+#define PSM__MAX_KEY_TABLES 20
 
 static inline psm__u32 psm__align_to_16(psm__u32 n) { return (n + 15) & ~15u; }
 

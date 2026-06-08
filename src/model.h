@@ -26,7 +26,7 @@ struct psm__interp {
   psm__f32 *weights;
 };
 
-struct psm__axis {
+struct psm__key_table {
   psm__i32 key_count;
   psm__f32 *keys;
   psm__i32 idx;
@@ -36,7 +36,7 @@ struct psm__axis {
   bool weight_dirty;
 };
 
-struct psm__blend_axis {
+struct psm__blend_key_table {
   psm__i32 key_count;
   psm__f32 *keys;
   psm__i32 base_key_idx;
@@ -47,8 +47,8 @@ struct psm__blend_axis {
 };
 
 struct psm__binding {
-  struct psm__axis **axes;
-  psm__i32 axis_count;
+  struct psm__key_table **key_tables;
+  psm__i32 key_table_count;
   psm__i32 max_blend;
   psm__i32 blend_count;
   psm__i32 *keyform_idx;
@@ -67,7 +67,7 @@ struct psm__blend_constraint {
 };
 
 struct psm__blend_binding {
-  struct psm__blend_axis *axis;
+  struct psm__blend_key_table *key_table;
   psm__i32 key_src_offset;
   psm__i32 blend_count;
   psm__i32 keyform_idx[2];
@@ -302,10 +302,10 @@ struct psm__param {
   psm__f32 interp_eps;
   psm__f32 value;
   bool dirty;
-  struct psm__axis *axes;
-  psm__i32 axis_count;
-  struct psm__blend_axis *blend_axes;
-  psm__i32 blend_axis_count;
+  struct psm__key_table *key_tables;
+  psm__i32 key_table_count;
+  struct psm__blend_key_table *blend_key_tables;
+  psm__i32 blend_key_table_count;
 };
 
 struct psm__params {
@@ -315,9 +315,9 @@ struct psm__params {
   psm__f32 *input_value;
 };
 
-struct psm__axes {
+struct psm__key_tables {
   psm__i32 count;
-  struct psm__axis *items;
+  struct psm__key_table *items;
 };
 
 struct psm__bindings {
@@ -327,7 +327,7 @@ struct psm__bindings {
 
 struct psm__blend_shape {
   psm__i32 target_idx;
-  psm__i32 axis_count;
+  psm__i32 binding_count;
   struct psm__blend_binding *bindings;
 };
 
@@ -341,9 +341,9 @@ struct psm__blend_constraints {
   struct psm__blend_constraint *items;
 };
 
-struct psm__blend_axes {
+struct psm__blend_key_tables {
   psm__i32 count;
-  struct psm__blend_axis *items;
+  struct psm__blend_key_table *items;
 };
 
 struct psm__blend_bindings {
@@ -351,7 +351,7 @@ struct psm__blend_bindings {
   struct psm__blend_binding *items;
 };
 
-struct psm__param_ext {
+struct psm__param_keys {
   psm__f32 **keys;
   psm__i32 *key_counts;
 };
@@ -365,10 +365,10 @@ struct psm__model {
   struct psm__glues glues;
   struct psm__offscreens offscreens;
   struct psm__params params;
-  struct psm__axes axes;
+  struct psm__key_tables key_tables;
   struct psm__bindings bindings;
   struct psm__blend_constraints blend_constraints;
-  struct psm__blend_axes blend_axes;
+  struct psm__blend_key_tables blend_key_tables;
   struct psm__blend_bindings blend_bindings;
   struct psm__blend_shapes bs_parts;
   struct psm__blend_shapes bs_warps;
@@ -376,7 +376,7 @@ struct psm__model {
   struct psm__blend_shapes bs_art_meshes;
   struct psm__blend_shapes bs_glues;
   struct psm__blend_shapes bs_offscreens;
-  struct psm__param_ext param_ext;
+  struct psm__param_keys param_keys;
   psm__i32 *render_order;
   bool force_update;
   bool y_reversed;

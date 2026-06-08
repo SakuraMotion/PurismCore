@@ -51,7 +51,7 @@ blend_scalar_f32(psm__i32 count, const struct psm__blend_shape *shapes,
 {
   for (psm__i32 i = 0; i < count; i++) {
     psm__i32 ti = shapes[i].target_idx;
-    psm__i32 bc = shapes[i].axis_count;
+    psm__i32 bc = shapes[i].binding_count;
     psm__f32 value = values[ti];
 
     struct psm__blend_binding *binds = shapes[i].bindings;
@@ -70,7 +70,7 @@ blend_scalar_i32(psm__i32 count, const struct psm__blend_shape *shapes,
 {
   for (psm__i32 i = 0; i < count; i++) {
     psm__i32 ti = shapes[i].target_idx;
-    psm__i32 bc = shapes[i].axis_count;
+    psm__i32 bc = shapes[i].binding_count;
     psm__f32 value = (psm__f32)values[ti];
 
     struct psm__blend_binding *binds = shapes[i].bindings;
@@ -102,7 +102,7 @@ psm__blend_positions(const struct psm__model *m, psm__i32 count,
 
   for (psm__i32 i = 0; i < count; i++) {
     psm__i32 ti = shapes[i].target_idx;
-    psm__i32 bc = shapes[i].axis_count;
+    psm__i32 bc = shapes[i].binding_count;
     if (bc <= 0)
       continue;
 
@@ -168,7 +168,7 @@ psm__blend_colors(psm__i32 count, const struct psm__blend_shape *shapes,
 
   for (psm__i32 i = 0; i < count; i++) {
     psm__i32 ti = shapes[i].target_idx;
-    psm__i32 bc = shapes[i].axis_count;
+    psm__i32 bc = shapes[i].binding_count;
     psm__i32 ob = ti * 4;
 
     struct psm__blend_binding *binds = shapes[i].bindings;
