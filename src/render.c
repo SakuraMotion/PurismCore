@@ -146,7 +146,7 @@ psm__sort_render_order(struct psm__model *m)
             if (oidx >= 0)
               render_order[am_cnt + oidx] = pos++;
           }
-          if (grp < group_count) {
+          if (grp >= 0 && grp < group_count) {
             struct psm__draw_group *nc = &groups[grp];
             nc->cursor = pos;
             pos += nc->total_count;

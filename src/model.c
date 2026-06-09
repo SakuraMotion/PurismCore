@@ -63,6 +63,38 @@ psm__safe_param_count(const struct psm__sections *src,
       0, PSM__MAX_KEY_TABLES);
 }
 
+/*
+ * Overflow-checked accumulation for workspace size totals.
+ * On overflow, marks the arena bad (so psm__arena_ok fails and the
+ * model is rejected at load) and returns the accumulator unchanged.
+ */
+static inline psm__u32
+psm__acc_add(struct psm__arena *a, psm__u32 acc, psm__u32 add)
+{
+  psm__u32 r = acc + add;
+  if (r < acc) {
+    a->overflow = 1;
+    return acc;
+  }
+  return r;
+}
+
+/*
+ * 16-byte-aligned byte size of a vc-vertex position buffer (2 floats
+ * per vertex), with overflow detection before the u32 truncation that
+ * psm__align_to_16 would otherwise hide. Caller guarantees vc >= 0.
+ */
+static inline psm__u32
+psm__pos_bytes(struct psm__arena *a, psm__i32 vc)
+{
+  psm__u32 v = (psm__u32)vc;
+  if (v > (0xFFFFFFFFu - 15u) / (2u * (psm__u32)sizeof(psm__f32))) {
+    a->overflow = 1;
+    return 0;
+  }
+  return psm__align_to_16(2u * (psm__u32)sizeof(psm__f32) * v);
+}
+
 static struct psm__model *
 psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     const struct psm__sections *src, struct psm__count_info *cnt)
@@ -90,7 +122,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     for (psm__i32 i = 0; i < cnt->parts; i++) {
       psm__i32 pc = psm__safe_param_count(src, cnt,
           src->part_src.binding_idx, i);
-      part_tmp_total += MAX_COMB(pc);
+      part_tmp_total = psm__acc_add(arena, part_tmp_total, MAX_COMB(pc));
     }
   }
 
@@ -100,10 +132,11 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     for (psm__i32 i = 0; i < cnt->warps; i++) {
       psm__i32 vc = src->warp_src.vertex_count[i];
       if (vc > 0)
-        warp_pos_total += psm__align_to_16(2 * sizeof(psm__f32) * vc);
+        warp_pos_total = psm__acc_add(arena, warp_pos_total,
+            psm__pos_bytes(arena, vc));
       psm__i32 pc = psm__safe_param_count(src, cnt,
           src->warp_src.binding_idx, i);
-      warp_tmp_total += MAX_COMB(pc);
+      warp_tmp_total = psm__acc_add(arena, warp_tmp_total, MAX_COMB(pc));
     }
   }
 
@@ -112,7 +145,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     for (psm__i32 i = 0; i < cnt->rotations; i++) {
       psm__i32 pc = psm__safe_param_count(src, cnt,
           src->rotation_src.binding_idx, i);
-      rot_tmp_total += MAX_COMB(pc);
+      rot_tmp_total = psm__acc_add(arena, rot_tmp_total, MAX_COMB(pc));
     }
   }
 
@@ -122,10 +155,11 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     for (psm__i32 i = 0; i < cnt->art_meshes; i++) {
       psm__i32 vc = src->art_mesh_src.vertex_count[i];
       if (vc > 0)
-        am_pos_total += psm__align_to_16(2 * sizeof(psm__f32) * vc);
+        am_pos_total = psm__acc_add(arena, am_pos_total,
+            psm__pos_bytes(arena, vc));
       psm__i32 pc = psm__safe_param_count(src, cnt,
           src->art_mesh_src.binding_idx, i);
-      am_tmp_total += MAX_COMB(pc);
+      am_tmp_total = psm__acc_add(arena, am_tmp_total, MAX_COMB(pc));
     }
   }
 
@@ -134,8 +168,8 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     for (psm__i32 i = 0; i < cnt->bindings; i++) {
       psm__i32 pc = psm__clamp_i32(src->binding_src.key_table_idx_len[i],
           0, PSM__MAX_KEY_TABLES);
-      kb_ptr_total += pc;
-      kb_idx_total += MAX_COMB(pc);
+      kb_ptr_total = psm__acc_add(arena, kb_ptr_total, (psm__u32)pc);
+      kb_idx_total = psm__acc_add(arena, kb_idx_total, MAX_COMB(pc));
     }
   }
 
@@ -144,7 +178,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     for (psm__i32 i = 0; i < cnt->glues; i++) {
       psm__i32 pc = psm__safe_param_count(src, cnt,
           src->glue_src.binding_idx, i);
-      glue_tmp_total += MAX_COMB(pc);
+      glue_tmp_total = psm__acc_add(arena, glue_tmp_total, MAX_COMB(pc));
     }
   }
 
@@ -167,7 +201,8 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   if (ver >= csmMocVersion_42 &&
       src->blend_binding_src.bs_constraint_idx_len) {
     for (psm__i32 i = 0; i < cnt->blend_bindings; i++) {
-      bs_constr_ptrs_total += src->blend_binding_src.bs_constraint_idx_len[i];
+      bs_constr_ptrs_total = psm__acc_add(arena, bs_constr_ptrs_total,
+          (psm__u32)src->blend_binding_src.bs_constraint_idx_len[i]);
     }
   }
 
@@ -179,7 +214,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
       if (!psm__valid_idx(oi, cnt->parts)) continue;
       psm__i32 pc = psm__safe_param_count(src, cnt,
           src->part_src.binding_idx, oi);
-      os_tmp_total += MAX_COMB(pc);
+      os_tmp_total = psm__acc_add(arena, os_tmp_total, MAX_COMB(pc));
     }
   }
 

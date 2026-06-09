@@ -74,7 +74,7 @@ psm__apply_glues(struct psm__model *m)
     if (!wt || !pi)
       continue;
 
-    for (psm__i32 i = 0; i < ic; i += 2) {
+    for (psm__i32 i = 0; i + 1 < ic; i += 2) {
       psm__i32 i0 = pi[i], i1 = pi[i + 1];
 
       psm__f32 w0 = wt[i], w1 = wt[i + 1];

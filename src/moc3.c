@@ -260,7 +260,7 @@ done_nonnull:
     psm__i32 vc = src->warp_src.vertex_count[i];
     for (psm__i32 j = 0; j < count; j++) {
       psm__i32 po = src->warp_key_src.key_pos_off[off + j];
-      PSM__FAIL(po < 0 || (psm__u32)po + (psm__u32)vc >
+      PSM__FAIL(po < 0 || (psm__u32)po + 2u * (psm__u32)vc >
               (psm__u32)cnt->keyform_pos, PSM__ERR_FILE_CORRUPT,
           "warp[%d] kf[%d] pos_off=%d vc=%d max=%d",
           i, j, po, vc, cnt->keyform_pos);
@@ -301,10 +301,22 @@ done_nonnull:
 
   psm__check_key_combo(src->art_mesh_src, cnt->art_mesh_keyforms, cnt->art_meshes)
 
-  /* Art mesh keyform position indices */
-  for (psm__i32 i = 0; i < cnt->art_mesh_keyforms; i++) {
-    psm__model_check_index(src->art_mesh_key_src.key_pos_off,
-        i, cnt->keyform_pos);
+  /*
+   * Art mesh keyform position indices. Each keyform stores vc vertices
+   * (2 floats each), so the readable span is [po, po + 2*vc); validate
+   * the full span, not just the start index.
+   */
+  for (psm__i32 i = 0; i < cnt->art_meshes; i++) {
+    psm__i32 off = src->art_mesh_src.keyform_off[i];
+    psm__i32 count = src->art_mesh_src.key_len[i];
+    psm__i32 vc = src->art_mesh_src.vertex_count[i];
+    for (psm__i32 j = 0; j < count; j++) {
+      psm__i32 po = src->art_mesh_key_src.key_pos_off[off + j];
+      PSM__FAIL(po < 0 || (psm__u32)po + 2u * (psm__u32)vc >
+              (psm__u32)cnt->keyform_pos, PSM__ERR_FILE_CORRUPT,
+          "art_mesh[%d] kf[%d] pos_off=%d vc=%d max=%d",
+          i, j, po, vc, cnt->keyform_pos);
+    }
   }
 
   /* Parameter sources */
