@@ -119,15 +119,19 @@ Pull requests *are* welcome.
 
 We tried that. It was uglier. As previously said, the ABI is awkward.
 
-#### Then why not change the ABI?
+#### Then C++ for now?
+
+No, but Purism Core does build with a C++ compiler.
+
+#### Why not change the ABI anyway?
 
 The goal is for Purism Core to be compatible with all software that already
 works with Cubism Core. A Rust implementation with a more ergonomic API is
 forthcoming.
 
-#### Then C++ for now?
+#### So you just want to get out of paying Live2D Inc. then?
 
-No, but Purism Core does build with a C++ compiler.
+That's how competition works.
 
 #### Do I need a license from Live2D Inc. to use this?
 
