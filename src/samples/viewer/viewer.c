@@ -321,8 +321,7 @@ static void frame(App *a)
                "Tab: panel   M: masking   R: reset view   "
                "wheel: zoom   LMB drag: pan   drop a model to load it",
                (Vector2){ 10, a->view.sh - 30 }, 18, 1, RAYWHITE);
-    DrawTextEx(a->uiFont, a->coreVerStr,
-               (Vector2){ 10, a->view.sh - 56 }, 18, 1, RAYWHITE);
+    DrawTextEx(a->uiFont, a->coreVerStr, (Vector2){ 10, a->view.sh - 56 }, 18, 1, RAYWHITE);
     char fps[32];
     snprintf(fps, sizeof(fps), "%d FPS", GetFPS());
     DrawTextEx(a->uiFont, fps, (Vector2){ 10, 8 }, 20, 1, (Color){ 0, 228, 48, 255 });
