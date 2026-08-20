@@ -9,7 +9,7 @@ There are two main ways to build Purism Core:
   bundle. Requires a Unix-like environment with GCC or Clang, GNU make, and
   standard POSIX utilities; MSYS, Cygwin, or busybox-w32 *may* work on
   Windows, but we haven't tested.
-- **CMake** — IDE integration, `find_package` consumers, install/packaging,
+- **CMake** for IDE integration, `find_package` consumers, install/packaging,
   and all cross-compilation (via `zig cc` and the bundled configure presets).
 
 If you do not intend to modify the library itself, the easiest method is to use
@@ -193,7 +193,7 @@ The Emscripten build is the most compatible way of using Purism Core in
 existing web-based projects:
 
 ```sh
-make wasm-all # dist/Live2DCubismCore.js (v6) + dist/Live2DCubismCore-v5.js
+make wasm-all # build/purismcore.js (v6) + build/purismcore-v5.js
 ```
 
 ## Single-file bundle
