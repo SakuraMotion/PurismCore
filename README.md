@@ -19,7 +19,7 @@ Please see the table below for official support:
 | x86_64| ✓       | ✓     | ✓     | ✓ * | ✓       | -           |
 | armv7l| ?       | -     | ✓     | ?   | ✓       | -           |
 | arm64 | ✓       | ✓     | ✓     | ✓   | ✓       | -           |
-| wasm32| -       | -     | -     | -   | -       | ?           |
+| wasm32| -       | -     | -     | -   | -       | ✓           |
 | wasm64| -       | -     | -     | -   | -       | ?           |
 
 <sup>\*The iOS simulator is fully supported.</sup>
@@ -28,11 +28,13 @@ A `?` indicates that we have not tested on that platform. Purism Core should,
 in theory, function on all "sane" platforms. A `-` indicates that the platform
 is not supported, usually due to an impossible OS/CPU architecture combination.
 
-We provide prebuilt shared and static libraries for the following platforms:
+We provide prebuilt shared libraries, static libraries, and sample viewers for
+the following platforms:
 
-- Windows x86/x86_64/arm64 (MinGW only)
+- Windows x86/x86_64/arm64 (MinGW only; no viewer on arm64)
 - Linux x86_64/arm64 (glibc only)
 - macOS x86_64/arm64
+- Emscripten WASM
 
 We also provide a single-file bundle of the entire library in a header file
 (`PurismCoreBundle.h`) if you would prefer to avoid both using prebuilt
@@ -43,6 +45,9 @@ Core, and it's the way we recommend.
 
 Purism Core should be compatible with existing frameworks that use Live2D
 Cubism Core, such as [Ren'Py](https://www.renpy.org/doc/html/live2d.html).
+
+We also provide a sample model viewer built with [raylib](https://raylib.com)
+in `src/samples/viewer/`.
 
 ## Build Instructions
 
