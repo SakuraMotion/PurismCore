@@ -187,12 +187,12 @@ build/unit: src/tests/unit.c $(SRC) $(HDR) $(COMMON_H) | build
 	$(CC) $(CFLAGS) -Wno-unused-function $< -o $@ -lm
 
 endian-test: build/endian-test
-	./build/endian-test testdata/moc3 $(TEST_DATA)
+	./build/endian-test $(shell find "$(TEST_DATA)" -iname '*.moc3')
 build/endian-test: src/tests/test_endian.c $(SRC) $(HDR) $(COMMON_H) | build
 	$(CC) $(CFLAGS) -Wno-unused-function $< -o $@ -lm
 
 verify-negctl: build/negctl-triidx
-	./build/negctl-triidx testdata/moc3 $(TEST_DATA)
+	./build/negctl-triidx $(shell find "$(TEST_DATA)" -iname '*.moc3')
 build/negctl-triidx: src/tests/negctl_triidx.c $(SRC) $(HDR) $(COMMON_H) | build
 	$(CC) $(CFLAGS) -Wno-unused-function $< -o $@ -lm
 

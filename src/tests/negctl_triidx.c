@@ -1,8 +1,5 @@
 /*
  * Negative control for the triangle-index-value check in verify_idx:
- * load a model, confirm it validates, corrupt one triangle index to an
- * out-of-range value, and confirm validation now REJECTS it.
- * Single-TU build (like unit.c / test_endian.c) for access to internals.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,7 +49,12 @@
 
 static int g_tested, g_rejected, g_no_indices;
 
-static int ends_moc3(const char *s){ size_t l=strlen(s); return l>5 && !strcmp(s+l-5,".moc3"); }
+static int
+ends_moc3(const char *s)
+{
+  size_t l = strlen(s);
+  return l > 5 && !strcmp(s+l-5, ".moc3");
+}
 
 static void
 run_one(const char *path)
@@ -97,14 +99,7 @@ main(int argc, char **argv)
 {
   csmSetLogFunction(NULL);
   for (int a = 1; a < argc; a++) {
-    DIR *dir = opendir(argv[a]); if (!dir) continue;
-    struct dirent *e; char p[4096];
-    while ((e = readdir(dir))) {
-      if (!ends_moc3(e->d_name)) continue;
-      snprintf(p, sizeof p, "%s/%s", argv[a], e->d_name);
-      run_one(p);
-    }
-    closedir(dir);
+    run_one(argv[a]);
   }
   fprintf(stderr, "corrupted+tested: %d, rejected: %d, (no-index models: %d)\n",
       g_tested, g_rejected, g_no_indices);

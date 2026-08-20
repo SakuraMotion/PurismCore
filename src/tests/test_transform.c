@@ -232,7 +232,7 @@ TEST(rotation_with_origin)
   make_rot_model(&m, &dn, &rc,
       &a, &s, &ox, &oy, &rfx, &rfy);
 
-  /* M(180°) = (-1, 0; 0, -1) */
+  /* M(180) = (-1, 0; 0, -1) */
   /* result = (-1,0;0,-1) * (1,0) + (5,5) = (4, 5) */
   psm__f32 inp[] = {1.0f, 0.0f}, out[2];
   psm__rotation_transform(&m, 0, inp, out, 1);

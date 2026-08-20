@@ -1,23 +1,6 @@
 /*
  * Purism Core: big-endian round-trip differential test
  *
- * The entire test corpus is little-endian (endian_flag == 0), so the byte-swap
- * load path has no correctness coverage. This test synthesizes a big-endian
- * copy of each model using an INDEPENDENT swapper (its own swap primitives, its
- * own count_info/canvas/offset-table sizing, and a uniform sizeof() predicate
- * over the section table) -- it never calls the library's psm__bswap_* code.
- * It then loads the synthesized BE file through the public API and asserts the
- * model output is bit-identical to the little-endian load after an identical
- * parameter sweep.
- *
- * Shared-and-correct logic agrees (pass); any divergence between the library's
- * swap and this independent reference -- a regression, a count_info version
- * sizing bug, a missed canvas field, a bad offset-table count -- corrupts the
- * BE file the library reconstructs and shows up as an output mismatch.
- *
- * Single-TU build (like unit.c) for access to internal structs and the
- * PSM__SECTIONS_* table.
- *
  * Copyright (c) 2026 Sakura Motion Project
  * SPDX-License-Identifier: MIT
  */
@@ -70,7 +53,7 @@
 
 #include "../samples/common.h"
 
-/* ---- independent byte-swap primitives (not the library's) ---- */
+static int g_pass, g_fail, g_skip;
 
 static void
 ind_swap32(void *p, size_t n)
@@ -92,13 +75,6 @@ ind_swap16(void *p, size_t n)
   }
 }
 
-/*
- * Swap one section field in the synth (pristine) buffer. The field pointer
- * comes from a throwaway little-endian parse (map buffer); we translate it to
- * the same offset in the pristine buffer. Runtime/arena pointers (8-byte) and
- * byte/string fields fall outside {2,4} or outside the file and are skipped --
- * exactly the fields a big-endian file must NOT swap.
- */
 static void
 ind_swap_field(size_t width, const void *fieldptr, size_t count,
     const uint8_t *mapbase, uint8_t *synthbase, size_t size)
@@ -112,18 +88,13 @@ ind_swap_field(size_t width, const void *fieldptr, size_t count,
     return;                              /* runtime/arena field, not in file */
   size_t off = (size_t)(p - mapbase);
   if (off + count * width > size)
-    return;                              /* defensive; shouldn't happen */
+    return;
   if (width == 4)
     ind_swap32(synthbase + off, count);
   else
     ind_swap16(synthbase + off, count);
 }
 
-/*
- * Produce a big-endian copy of `raw` (n bytes). Returns a freshly aligned
- * buffer the caller frees with psm_aligned_free, or NULL if the model won't
- * parse as little-endian (not a valid model -> nothing to test).
- */
 static void *
 build_be(const uint8_t *raw, size_t n)
 {
@@ -189,8 +160,6 @@ build_be(const uint8_t *raw, size_t n)
   psm_aligned_free(mapbuf);
   return synth;
 }
-
-/* ---- output snapshot ---- */
 
 struct buf {
   uint8_t *data;
@@ -265,9 +234,6 @@ snapshot(csmModel *m, struct buf *b)
   buf_put(b, &ppu, sizeof(ppu));
 }
 
-/* load a model (revive in place + init + sweep) and snapshot it. takes
- * ownership of mocbuf (must be a freshly aligned buffer of n bytes). returns
- * 0 ok, -1 if revive/init fails. */
 static int
 load_and_snapshot(void *mocbuf, size_t n, struct buf *out)
 {
@@ -317,7 +283,7 @@ run_one(const char *path, const char **why)
     free(snap_le.data);
     psm_aligned_free(raw);
     *why = "LE load failed";
-    return -1;                           /* not a valid model; nothing to test */
+    return -1;
   }
 
   /* independently synthesized big-endian copy */
@@ -353,54 +319,23 @@ run_one(const char *path, const char **why)
   return ok ? 1 : 0;
 }
 
-static int g_pass, g_fail, g_skip;
-
-static int
-ends_moc3(const char *s)
-{
-  size_t l = strlen(s);
-  return l > 5 && strcmp(s + l - 5, ".moc3") == 0;
-}
-
-static void
-run_dir(const char *dir)
-{
-  DIR *d = opendir(dir);
-  if (!d) {
-    fprintf(stderr, "  (cannot open dir: %s)\n", dir);
-    return;
-  }
-  struct dirent *e;
-  char path[4096];
-  while ((e = readdir(d)) != NULL) {
-    if (!ends_moc3(e->d_name))
-      continue;
-    snprintf(path, sizeof(path), "%s/%s", dir, e->d_name);
-    const char *why = "";
-    int r = run_one(path, &why);
-    if (r == 1) {
-      g_pass++;
-    } else if (r == 0) {
-      g_fail++;
-      fprintf(stderr, "  FAIL %s: %s\n", e->d_name, why);
-    } else {
-      g_skip++;
-    }
-  }
-  closedir(d);
-}
-
 int
 main(int argc, char **argv)
 {
   csmSetLogFunction(NULL);
   fprintf(stderr, "big-endian round-trip differential test:\n");
 
-  if (argc > 1) {
-    for (int i = 1; i < argc; i++)
-      run_dir(argv[i]);
-  } else {
-    run_dir("testdata/moc3");
+  for (int i = 1; i < argc; i++) {
+    const char *why = "";
+    int r = run_one(argv[i], &why);
+    if (r == 1) {
+      g_pass++;
+    } else if (r == 0) {
+      g_fail++;
+      fprintf(stderr, "  FAIL %s: %s\n", argv[i], why);
+    } else {
+      g_skip++;
+    }
   }
 
   fprintf(stderr, "\n%d passed, %d failed, %d skipped\n",
