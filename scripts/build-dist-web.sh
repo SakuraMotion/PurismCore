@@ -29,7 +29,7 @@ mkdir -p "$DIST/Core" "$DIST/Core-v5" "$DIST/Samples/Viewer"
 
 make wasm-all
 cp build/purismcore.js "$DIST/Core/"
-cp build/purismcore-v5.js "$DIST/Core-v5/"
+cp build/purismcore-v5.js "$DIST/Core-v5/purismcore.js"
 
 if [ ! -z "$RAYLIB_WEB_DIR" ]; then
   make viewer-web
