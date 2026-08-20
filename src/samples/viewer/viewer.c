@@ -28,13 +28,18 @@ static void usage(void)
                     "             drag a .model3.json or .moc3 onto the window to load it\n");
 }
 
-static bool ParseArgs(int argc, char **argv, Options *o)
+static void ResetOptions(Options *o)
 {
     memset(o, 0, sizeof(*o));
     o->shotZoom = 1.0f;
     o->maskScale = DEFAULT_MASK_SCALE;
     o->maxOrder = 1 << 30;
     o->onlyDrawable = -1;
+}
+
+static bool ParseArgs(int argc, char **argv, Options *o)
+{
+    ResetOptions(o);
     for (int i = 1; i < argc; i++)
     {
         const char *a = argv[i];
@@ -349,9 +354,7 @@ int main(int argc, char **argv)
 #if defined(__EMSCRIPTEN__)
     (void)argc;
     (void)argv;
-    app.opt.maskScale = DEFAULT_MASK_SCALE;
-    app.opt.shotZoom = 1.0f;
-    app.opt.maxOrder = 1 << 30;
+    ResetOptions(&app.opt);
 #else
     if (!ParseArgs(argc, argv, &app.opt))
     {
