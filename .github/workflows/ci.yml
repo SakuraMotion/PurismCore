@@ -120,7 +120,7 @@ jobs:
 
       - name: Fetch and build raylib v6.0 (webassembly)
         run: |
-          mkdir -p build/raylib-web/
+          mkdir -p build/
           curl -sL https://github.com/raysan5/raylib/archive/refs/tags/6.0.zip \
             -o build/raylib-6.0.zip
           ( cd build && unzip -q raylib-6.0.zip && mv raylib-6.0 raylib-web )
