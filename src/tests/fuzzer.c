@@ -10,6 +10,10 @@
 #include "PurismCore.h"
 #include "../samples/common.h"
 
+#ifdef PSM_DEBUG_MALLOC
+void psm__dbg_free_all(void);
+#endif
+
 static int g_initialized = 0;
 
 static void
@@ -21,6 +25,10 @@ null_log(const char *msg)
 int
 LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
+#ifdef PSM_DEBUG_MALLOC
+  psm__dbg_free_all();
+#endif
+
   if (!g_initialized) {
     csmSetLogFunction(null_log);
     g_initialized = 1;
@@ -64,14 +72,23 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     float *values = csmGetParameterValues(model);
     const float *mins = csmGetParameterMinimumValues(model);
     const float *maxs = csmGetParameterMaximumValues(model);
-    for (int i = 0; i < param_count && i < (int)size / 4; i++) {
-      uint32_t r;
-      memcpy(&r, data + i * 4 % size, sizeof(r));
-      float t = (float)(r % 1000) / 999.0f;
-      values[i] = mins[i] + t * (maxs[i] - mins[i]);
+    for (int pass = 0; pass < 6; pass++) {
+      for (int i = 0; i < param_count; i++) {
+        uint32_t r;
+        /* read 4 bytes from a varying in-bounds offset (size >= 4 here) */
+        size_t off = ((size_t)i * 4u + (size_t)pass * 2654435761u)
+            % (size - 3);
+        memcpy(&r, data + off, sizeof(r));
+        r ^= (uint32_t)pass * 0x9e3779b9u;
+
+        /* sweep extremes/out-of-range on some passes to exercise clamping */
+        float t = (pass & 1) ? (float)(int32_t)r / 64.0f
+                             : (float)(r % 1000) / 999.0f;
+        values[i] = mins[i] + t * (maxs[i] - mins[i]);
+      }
+      csmResetDrawableDynamicFlags(model);
+      csmUpdateModel(model);
     }
-    csmResetDrawableDynamicFlags(model);
-    csmUpdateModel(model);
   }
 
   psm_aligned_free(model_buf);

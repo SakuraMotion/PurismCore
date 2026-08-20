@@ -6,8 +6,8 @@
  */
 
 #ifndef PSM_NO_STDIO
-#include <stdarg.h>
-#include <stdio.h>
+#  include <stdarg.h>
+#  include <stdio.h>
 #endif
 
 #include "private.h"
@@ -47,7 +47,7 @@ psm__debug_print(int level, const char *fmt, ...)
     return;
 
 #ifndef PSM_NO_STDIO
-  char buf[256];
+  char    buf[256];
   va_list args;
   va_start(args, fmt);
   vsnprintf(buf, sizeof(buf), fmt, args);

@@ -32,3 +32,4 @@ testdata/*
 # OS
 .DS_Store
 Thumbs.db
+/shot.png

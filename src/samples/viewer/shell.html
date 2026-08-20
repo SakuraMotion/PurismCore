@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<!--
+  Purism Core: sample model viewer Emscripten shell.
+
+  Copyright (c) 2026 Sakura Motion Project
+  SPDX-License-Identifier: MIT
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Purism Core viewer</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1e1e24; color: #e6e6ea;
+    font: 14px/1.4 system-ui, sans-serif; overflow: hidden; }
+  #bar { display: flex; align-items: center; gap: 12px; padding: 8px 12px;
+    background: #26262e; border-bottom: 1px solid #333; }
+  #bar b { color: #fff; font-weight: 600; }
+  #bar .hint { color: #9a9aa6; }
+  button { background: #3a6df0; color: #fff; border: 0; border-radius: 6px;
+    padding: 7px 14px; font: inherit; cursor: pointer; }
+  button:hover { background: #4f7ef5; }
+  #status { color: #9a9aa6; margin-left: auto; }
+  #canvas { display: block; width: 100vw; height: calc(100vh - 41px);
+    background: #1e1e24; }
+  #canvas:focus { outline: none; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <b>Purism Core viewer</b>
+  <button id="load">Load model</button>
+  <span class="hint">a .model3.json + its textures + .moc3, or a .zip,
+    or you can drop files on the canvas</span>
+  <span id="status"></span>
+</div>
+<input id="file" type="file" multiple
+   accept=".moc3,.model3.json,.json,.png,.zip" style="display:none">
+<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+
+<script>
+"use strict";
+
+const statusEl = document.getElementById("status");
+const setStatus = (s) => { statusEl.textContent = s; };
+
+// Module is consumed by the emcc-generated runtime appended below.
+var Module = {
+  canvas: document.getElementById("canvas"),
+  print: (t) => console.log(t),
+  printErr: (t) => console.error(t),
+  setStatus: setStatus,
+};
+
+function mkdirp(path) {
+  let cur = "";
+  for (const p of path.split("/").filter(Boolean)) {
+    cur += "/" + p;
+    try { Module.FS.mkdir(cur); } catch (e) { /* already exists */ }
+  }
+}
+function rmrf(path) {
+  let st;
+  try { st = Module.FS.stat(path); } catch (e) { return; }
+  if (Module.FS.isDir(st.mode)) {
+    for (const n of Module.FS.readdir(path))
+      if (n !== "." && n !== "..") rmrf(path + "/" + n);
+    Module.FS.rmdir(path);
+  } else {
+    Module.FS.unlink(path);
+  }
+}
+
+async function inflateRaw(bytes) {
+  const ds = new DecompressionStream("deflate-raw");
+  const stream = new Response(bytes).body.pipeThrough(ds);
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function unzip(buf) {
+  const dv = new DataView(buf), u8 = new Uint8Array(buf), dec = new TextDecoder();
+  let eocd = -1;
+  for (let i = buf.byteLength - 22; i >= 0; i--)
+    if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error("not a zip file");
+  const count = dv.getUint16(eocd + 10, true);
+  let off = dv.getUint32(eocd + 16, true);   // central directory offset
+  const out = [];
+  for (let n = 0; n < count; n++) {
+    if (dv.getUint32(off, true) !== 0x02014b50) break;  // central dir header
+    const method  = dv.getUint16(off + 10, true);
+    const compSz  = dv.getUint32(off + 20, true);
+    const nameLen = dv.getUint16(off + 28, true);
+    const extraLen= dv.getUint16(off + 30, true);
+    const commLen = dv.getUint16(off + 32, true);
+    const lho     = dv.getUint32(off + 42, true);       // local header offset
+    const name = dec.decode(u8.subarray(off + 46, off + 46 + nameLen));
+    const lNameLen  = dv.getUint16(lho + 26, true);
+    const lExtraLen = dv.getUint16(lho + 28, true);
+    const dataStart = lho + 30 + lNameLen + lExtraLen;
+    const comp = u8.subarray(dataStart, dataStart + compSz);
+    let data;
+    if (method === 0)      data = comp.slice();            // stored
+    else if (method === 8) data = await inflateRaw(comp);  // deflate
+    else throw new Error("unsupported zip compression method " + method);
+    if (!name.endsWith("/")) out.push({ name, data });
+    off += 46 + nameLen + extraLen + commLen;
+  }
+  return out;
+}
+
+function loadEntries(entries) {
+  const root = "/model";
+  rmrf(root);
+  mkdirp(root);
+
+  let entry = null, mocFallback = null;
+  for (const e of entries) {
+    const rel = e.name.replace(/^\/+/, "");
+    const full = root + "/" + rel;
+    mkdirp(full.slice(0, full.lastIndexOf("/")));
+    Module.FS.writeFile(full, e.data);
+    if (/\.model3\.json$/i.test(rel)) entry = full;
+    else if (/\.moc3$/i.test(rel)) mocFallback = full;
+  }
+  entry = entry || mocFallback;
+  if (!entry) { setStatus("no .model3.json or .moc3 found"); return; }
+
+  setStatus("");
+  Module.ccall("ViewerRequestLoad", null, ["string"], [entry]);
+}
+
+async function loadSelection(fileList) {
+  const files = [...fileList];
+  if (!files.length) return;
+  setStatus("reading…");
+
+  let entries = [];
+  for (const f of files) {
+    const buf = await f.arrayBuffer();
+    if (/\.zip$/i.test(f.name)) entries.push(...await unzip(buf));
+    else entries.push({ name: f.name, data: new Uint8Array(buf) });
+  }
+  loadEntries(entries);
+}
+
+async function loadFromZipUrl(url) {
+  setStatus("fetching…");
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error("HTTP " + resp.status + " fetching zip");
+  setStatus("reading…");
+  loadEntries(await unzip(await resp.arrayBuffer()));
+}
+
+document.getElementById("load").addEventListener("click", () =>
+  document.getElementById("file").click());
+document.getElementById("file").addEventListener("change", (e) => {
+  loadSelection(e.target.files).catch((err) => setStatus("error: " + err.message));
+  e.target.value = "";   // allow re-selecting the same files
+});
+
+setStatus("loading runtime…");
+Module.onRuntimeInitialized = () => {
+  setStatus("");
+  // ?model=<zip-url> auto-loads a model from a (possibly cross-origin) .zip.
+  const url = new URLSearchParams(location.search).get("model");
+  if (url)
+    loadFromZipUrl(url).catch((err) => setStatus("error: " + err.message));
+};
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>

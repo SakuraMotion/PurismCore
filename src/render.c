@@ -17,6 +17,7 @@ PSM__DEF void
 psm__sort_render_order(struct psm__model *m)
 {
   struct psm__draw_groups *dog = &m->draw_groups;
+
   psm__i32 group_count = dog->count;
   if (group_count <= 0)
     return;
@@ -26,16 +27,18 @@ psm__sort_render_order(struct psm__model *m)
     return;
 
   struct psm__art_meshes *am = &m->art_meshes;
-  struct psm__parts *pt = &m->parts;
+  struct psm__parts      *pt = &m->parts;
+
   psm__i32 *am_draw = am->draw_order;
   psm__i32 *pt_draw = pt->draw_order;
-  bool *am_en = am->enable;
-  bool *pt_en = pt->enable;
-  psm__i32 am_cnt = am->count;
+  bool     *am_en = am->enable;
+  bool     *pt_en = pt->enable;
+  psm__i32  am_cnt = am->count;
 
   /* First assign draw orders to items */
   for (psm__i32 gi = 0; gi < group_count; gi++) {
     struct psm__draw_group *c = &groups[gi];
+
     psm__i32 n = c->count;
     if (n <= 0)
       continue;
@@ -45,6 +48,7 @@ psm__sort_render_order(struct psm__model *m)
 
     for (psm__i32 j = 0; j < n; j++) {
       struct psm__draw_item *item = &it[j];
+
       psm__i32 oi = item->object_idx;
 
       if (item->object_type == 1) {
@@ -63,18 +67,21 @@ psm__sort_render_order(struct psm__model *m)
 
   /* Now time for sorting and render order assignment */
   psm__i32 *render_order = m->render_order;
-  psm__u8 ver = m->source->header->version;
+  psm__u8   ver = m->source->header->version;
+
   struct psm__draw_sort *srt = &dog->sort;
+
   psm__i32 *first = srt->first;
-  psm__i32 *last  = srt->last;
-  psm__i32 *next  = srt->next;
+  psm__i32 *last = srt->last;
+  psm__i32 *next = srt->next;
 
   if (!first || !last || !next)
     return;
 
   /* Compute max values from source for bounds checking */
   psm__i32 max_level = 0, max_items = 0;
-  struct psm__sections *ms = m->source->sections;
+
+  struct psm__sections   *ms = m->source->sections;
   struct psm__count_info *cnt = ms->count_info;
 
   if (cnt->draw_groups > 0 && ms->draw_group_src.obj_len &&
@@ -84,8 +91,8 @@ psm__sort_render_order(struct psm__model *m)
       psm__i32 hi = ms->draw_group_src.max_order[i];
       psm__i32 lo = ms->draw_group_src.min_order[i];
       psm__i32 lv = psm__safe_order_level(hi, lo);
-      if (lv > max_level)  max_level = lv;
-      if (gc > max_items)  max_items = gc;
+      if (lv > max_level) max_level = lv;
+      if (gc > max_items) max_items = gc;
     }
   }
 
@@ -94,8 +101,9 @@ psm__sort_render_order(struct psm__model *m)
 
   for (psm__i32 gi = 0; gi < group_count; gi++) {
     struct psm__draw_group *c = &groups[gi];
+
     psm__i32 olevel = c->order_level;
-    psm__i32 n      = c->count;
+    psm__i32 n = c->count;
 
     if (olevel <= 0 || n <= 0)
       continue;
@@ -107,7 +115,7 @@ psm__sort_render_order(struct psm__model *m)
       continue;
     psm_size olsz = (psm_size)olevel * sizeof(psm__i32);
     memset(first, 0xFF, olsz);
-    memset(last,  0xFF, olsz);
+    memset(last, 0xFF, olsz);
 
     if ((psm_size)n > (psm_size)-1 / sizeof(psm__i32))
       continue;
@@ -118,8 +126,8 @@ psm__sort_render_order(struct psm__model *m)
     if (!it)
       continue;
     for (psm__i32 j = 0; j < n; j++) {
-      psm__i32 rel = (psm__i32)((psm__u32)it[j].draw_order
-          - (psm__u32)c->min_order);
+      psm__i32 rel =
+          (psm__i32)((psm__u32)it[j].draw_order - (psm__u32)c->min_order);
       rel = psm__clamp_idx(rel, olevel);
 
       if (last[rel] == -1)
@@ -131,12 +139,13 @@ psm__sort_render_order(struct psm__model *m)
 
     /* Walk buckets in order and assign render positions */
     psm__i32 pos = c->cursor;
-    psm__i32 has_offscr = (ver >= csmMocVersion_53);
+    bool     has_offscr = (ver >= csmMocVersion_53);
 
     for (psm__i32 oi = 0; oi < olevel; oi++) {
       psm__i32 di = first[oi];
       while (di != -1 && di < n) {
         struct psm__draw_item *item = &it[di];
+
         psm__i32 obj = item->object_idx;
         psm__i32 grp = item->group_idx;
 
@@ -146,6 +155,8 @@ psm__sort_render_order(struct psm__model *m)
             if (oidx >= 0)
               render_order[am_cnt + oidx] = pos++;
           }
+          /* F3: a part draw item (type 1) always has a valid child group;
+           * self_group_idx >= 0 is proved at load (psm__verify_idx). */
           if (grp < group_count) {
             struct psm__draw_group *nc = &groups[grp];
             nc->cursor = pos;

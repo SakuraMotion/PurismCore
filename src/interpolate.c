@@ -30,7 +30,7 @@ psm__interp_f32(struct psm__interp *interp, const psm__f32 *targets,
   psm__i32 *comb = interp->blend_count;
   psm__f32 *wt = interp->weights;
   psm__f32 *tmp = interp->tmp;
-  psm__i32 tmp_len = interp->tmp_len;
+  psm__i32  tmp_len = interp->tmp_len;
 
   if (!max_comb || !comb || !wt)
     return;
@@ -49,7 +49,7 @@ psm__interp_f32(struct psm__interp *interp, const psm__f32 *targets,
   for (psm__i32 i = 0; i < obj_count; i++) {
     psm__i32 mc = max_comb[i];
     if (enable == NULL || enable[i]) {
-      psm__i32 n = psm__clamp_i32(comb[i], 0, mc);
+      psm__i32 n = comb[i];
       psm__f32 sum = 0.0f;
       if (tmp) {
         for (psm__i32 j = 0; j < n; j++)
@@ -79,7 +79,7 @@ psm__interp_i32(struct psm__interp *interp, const psm__f32 *targets,
   psm__i32 *comb = interp->blend_count;
   psm__f32 *wt = interp->weights;
   psm__f32 *tmp = interp->tmp;
-  psm__i32 tmp_len = interp->tmp_len;
+  psm__i32  tmp_len = interp->tmp_len;
 
   if (!max_comb || !comb || !wt)
     return;
@@ -93,7 +93,7 @@ psm__interp_i32(struct psm__interp *interp, const psm__f32 *targets,
   for (psm__i32 i = 0; i < obj_count; i++) {
     psm__i32 mc = max_comb[i];
     if (enable == NULL || enable[i]) {
-      psm__i32 n = psm__clamp_i32(comb[i], 0, mc);
+      psm__i32 n = comb[i];
       psm__f32 sum = 0.0f;
       if (tmp) {
         for (psm__i32 j = 0; j < n; j++)
@@ -116,7 +116,7 @@ psm__interp_f32_array(struct psm__interp *interp,
   if (!interp || !targets || !out || !counts)
     return;
 
-  psm__i32 obj_count = interp->object_count;
+  psm__i32  obj_count = interp->object_count;
   psm__i32 *max_comb = interp->max_blend;
   psm__i32 *comb = interp->blend_count;
   psm__f32 *wt = interp->weights;
@@ -133,12 +133,12 @@ psm__interp_f32_array(struct psm__interp *interp,
         off += mc;
         continue;
       }
-      psm__i32 n = psm__clamp_i32(comb[i], 0, mc);
+      psm__i32  n = comb[i];
       psm__f32 *dst = out[i];
       if (dst) {
         memset(dst, 0, total * sizeof(psm__f32));
         for (psm__i32 j = 0; j < n; j++) {
-          psm__f32 w = wt[off + j];
+          psm__f32  w = wt[off + j];
           psm__f32 *src = targets[off + j];
           if (src) {
             for (psm__i32 k = 0; k < total; k++)
@@ -153,12 +153,12 @@ psm__interp_f32_array(struct psm__interp *interp,
 
 static void
 psm__interp_colors(
-    struct psm__interp *interp,
+    struct psm__interp       *interp,
     const struct psm__color3 *kd_mul,
     const struct psm__color3 *kd_scr,
-    psm__f32 *mul_out,
-    psm__f32 *scr_out,
-    const bool *enable)
+    psm__f32                 *mul_out,
+    psm__f32                 *scr_out,
+    const bool               *enable)
 {
   psm__interp_f32(interp, kd_mul->r, mul_out + 0, 4, enable);
   psm__interp_f32(interp, kd_mul->g, mul_out + 1, 4, enable);
@@ -179,11 +179,12 @@ psm__interp_parts(struct psm__model *m)
 PSM__DEF void
 psm__interp_warps(struct psm__model *m)
 {
-  struct psm__warps *w = &m->deformers.warps;
-  struct psm__interp *ip = &w->keydata.interp;
+  struct psm__warps    *w = &m->deformers.warps;
+  struct psm__interp   *ip = &w->keydata.interp;
   struct psm__sections *ms = m->source->sections;
+
   psm__i32 *vc = ms->warp_src.vertex_count;
-  bool *en = w->enable;
+  bool     *en = w->enable;
 
   psm__interp_f32(ip, w->keydata.opacity, w->opacity, 1, en);
 
@@ -201,7 +202,8 @@ PSM__DEF void
 psm__interp_rotations(struct psm__model *m)
 {
   struct psm__rotations *r = &m->deformers.rotations;
-  struct psm__interp *ip = &r->keydata.interp;
+  struct psm__interp    *ip = &r->keydata.interp;
+
   bool *en = r->enable;
 
   psm__interp_f32(ip, r->keydata.opacity, r->opacity, 1, en);
@@ -221,10 +223,11 @@ PSM__DEF void
 psm__interp_art_meshes(struct psm__model *m)
 {
   struct psm__art_meshes *am = &m->art_meshes;
-  struct psm__interp *ip = &am->keydata.interp;
-  struct psm__sections *ms = m->source->sections;
+  struct psm__interp     *ip = &am->keydata.interp;
+  struct psm__sections   *ms = m->source->sections;
+
   psm__i32 *vc = ms->art_mesh_src.vertex_count;
-  bool *en = am->enable;
+  bool     *en = am->enable;
 
   psm__interp_f32(ip, am->keydata.opacity, am->opacity, 1, en);
   psm__interp_i32(ip, am->keydata.draw_order, am->draw_order, en);
@@ -253,7 +256,8 @@ PSM__DEF void
 psm__interp_offscreens(struct psm__model *m)
 {
   struct psm__offscreens *os = &m->offscreens;
-  struct psm__interp *ip = &os->keydata.interp;
+  struct psm__interp     *ip = &os->keydata.interp;
+
   bool *en = os->enable;
 
   if (m->source->header->version < csmMocVersion_53)

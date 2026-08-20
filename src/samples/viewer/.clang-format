@@ -1,0 +1,24 @@
+# raylib code style for the viewer sample (per raylib's CONVENTIONS.md): 4-space
+# indent, no tabs, Allman braces, spaces inside braced initializers. ColumnLimit
+# 0 keeps the author's line breaks (only indent/braces/spacing are normalized,
+# nothing is re-wrapped). Naming (TitleCase functions, camelCase variables) is a
+# separate concern clang-format can't do. The rest of Purism Core keeps its own
+# style; this config only applies to src/samples/viewer/.
+Language: Cpp
+BasedOnStyle: LLVM
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+BreakBeforeBraces: Allman
+AlwaysBreakAfterReturnType: None
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: true
+SpaceBeforeParens: ControlStatements
+PointerAlignment: Right
+Cpp11BracedListStyle: false
+IndentCaseLabels: false
+KeepEmptyLinesAtTheStartOfBlocks: false

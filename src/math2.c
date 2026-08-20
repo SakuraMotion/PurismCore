@@ -10,7 +10,7 @@
 #include "math2.h"
 
 PSM__DEF psm__f32
-psm__get_angle_not_abs(const psm__f32 *v1, const psm__f32 *v2)
+psm__signed_angle(const psm__f32 *v1, const psm__f32 *v2)
 {
   psm__f32 angle1 = atan2f(v1[1], v1[0]);
   psm__f32 angle2 = atan2f(v2[1], v2[0]);

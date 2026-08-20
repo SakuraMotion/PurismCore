@@ -1,0 +1,64 @@
+/*
+ * PurismCoreBundle.h - single-file (amalgamated) Purism Core.
+ *
+ * Usage:
+ *   #include "PurismCoreBundle.h"
+ * In exactly ONE translation unit, define the implementation first:
+ *   #define PURISM_CORE_IMPLEMENTATION
+ *   #include "PurismCoreBundle.h"
+ *
+ * Copyright (c) 2026 Sakura Motion Project
+ * SPDX-License-Identifier: MIT
+ */
+
+#ifndef PURISM_CORE_BUNDLE_H
+#define PURISM_CORE_BUNDLE_H
+
+/* Public API */
+#include "../include/PurismCore.h"
+
+#ifdef PURISM_CORE_IMPLEMENTATION
+
+/* Internal headers */
+#include "private.h"
+#include "error.h"
+#include "debug.h"
+#include "arena.h"
+#include "array.h"
+#include "math2.h"
+#include "moc3.h"
+#include "model.h"
+#include "verify.h"
+#include "gather.h"
+#include "interpolate.h"
+#include "artmesh.h"
+#include "blendshape.h"
+#include "deformer.h"
+#include "glue.h"
+#include "offscreen.h"
+#include "param.h"
+#include "part.h"
+#include "render.h"
+#include "update.h"
+
+/* Implementation */
+#include "core.c"
+#include "debug.c"
+#include "arena.c"
+#include "math2.c"
+#include "moc3.c"
+#include "verify.c"
+#include "model.c"
+#include "update.c"
+#include "param.c"
+#include "part.c"
+#include "deformer.c"
+#include "artmesh.c"
+#include "glue.c"
+#include "offscreen.c"
+#include "blendshape.c"
+#include "interpolate.c"
+#include "render.c"
+
+#endif /* PURISM_CORE_IMPLEMENTATION */
+#endif /* PURISM_CORE_BUNDLE_H */

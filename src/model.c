@@ -49,11 +49,12 @@ psm__remap_blend_mode(psm__i32 mode)
 }
 
 /*
- * Safe lookup of param_count via binding index;
- * returns 0 for out-of-bounds.
+ * Number of key tables (parameter axes) bound to object idx_arr[i], clamped to
+ * PSM__MAX_KEY_TABLES. Self-bounds-checking: returns 0 for an out-of-range
+ * binding index, so it is safe to call from the size pass before validation.
  */
 static inline psm__i32
-psm__safe_param_count(const struct psm__sections *src,
+psm__binding_param_count(const struct psm__sections *src,
     const struct psm__count_info *cnt, const psm__i32 *idx_arr, psm__i32 i)
 {
   psm__i32 bi = idx_arr[i];
@@ -63,16 +64,74 @@ psm__safe_param_count(const struct psm__sections *src,
       0, PSM__MAX_KEY_TABLES);
 }
 
+/*
+ * Overflow-checked accumulation for workspace size totals.
+ * On overflow, marks the arena bad (so psm__arena_ok fails and the
+ * model is rejected at load) and returns the accumulator unchanged.
+ */
+static inline psm__u32
+psm__acc_add(struct psm__arena *a, psm__u32 acc, psm__u32 add)
+{
+  psm__u32 r = acc + add;
+  if (r < acc) {
+    a->overflow = 1;
+    return acc;
+  }
+  return r;
+}
+
+/*
+ * 16-byte-aligned byte size of a vc-vertex position buffer (2 floats
+ * per vertex), with overflow detection before the u32 truncation that
+ * psm__align_to_16 would otherwise hide. Caller guarantees vc >= 0.
+ */
+static inline psm__u32
+psm__pos_bytes(struct psm__arena *a, psm__i32 vc)
+{
+  psm__u32 v = (psm__u32)vc;
+  if (v > (0xFFFFFFFFu - 15u) / (2u * (psm__u32)sizeof(psm__f32))) {
+    a->overflow = 1;
+    return 0;
+  }
+  return psm__align_to_16(2u * (psm__u32)sizeof(psm__f32) * v);
+}
+
+#define PSM__MAX_COMB(pc) ((psm__u32)1 << (pc))
+
+/*
+ * Per-object-type scratch sizing for the arena dry-run. Both use the
+ * overflow-checked accumulator, so a bad count saturates the arena rather than
+ * wrapping; a zero count or NULL source array contributes nothing.
+ */
+static psm__u32
+psm__sum_max_comb(struct psm__arena *a, const struct psm__sections *src,
+    struct psm__count_info *cnt, const psm__i32 *binding_idx, psm__i32 count)
+{
+  psm__u32 total = 0;
+  if (count > 0 && binding_idx)
+    for (psm__i32 i = 0; i < count; i++)
+      total = psm__acc_add(a, total,
+          PSM__MAX_COMB(psm__binding_param_count(src, cnt, binding_idx, i)));
+  return total;
+}
+
+static psm__u32
+psm__sum_pos_bytes(struct psm__arena *a, const psm__i32 *vertex_count,
+    psm__i32 count)
+{
+  psm__u32 total = 0;
+  if (count > 0 && vertex_count)
+    for (psm__i32 i = 0; i < count; i++)
+      if (vertex_count[i] > 0)
+        total = psm__acc_add(a, total, psm__pos_bytes(a, vertex_count[i]));
+  return total;
+}
+
 static struct psm__model *
 psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     const struct psm__sections *src, struct psm__count_info *cnt)
 {
-
-  /*
-   * Field allocation macros - allocate and assign only
-   * in real mode.  In dry-run mode, psm__arena_alloc
-   * returns NULL so assignment is skipped.
-   */
+// clang-format off
 #define psm__alloc_field(field, T, n) do { \
     void *_p = psm__arena_alloc(arena, \
         psm__arena_safe_mul(arena, sizeof(T), (n))); \
@@ -83,70 +142,35 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     if (_p) (field) = (T *)_p; \
   } while (0)
 
-#define MAX_COMB(pc) ((psm__u32)1 << (pc))
+// clang-format on
+  psm__u32 part_tmp_total = psm__sum_max_comb(arena, src, cnt,
+      src->part_src.binding_idx, cnt->parts);
 
-  psm__u32 part_tmp_total = 0;
-  if (cnt->parts > 0 && src->part_src.binding_idx) {
-    for (psm__i32 i = 0; i < cnt->parts; i++) {
-      psm__i32 pc = psm__safe_param_count(src, cnt,
-          src->part_src.binding_idx, i);
-      part_tmp_total += MAX_COMB(pc);
-    }
-  }
+  psm__u32 warp_tmp_total = psm__sum_max_comb(arena, src, cnt,
+      src->warp_src.binding_idx, cnt->warps);
+  psm__u32 warp_pos_total = psm__sum_pos_bytes(arena,
+      src->warp_src.vertex_count, cnt->warps);
 
-  psm__u32 warp_pos_total = 0, warp_tmp_total = 0;
-  if (cnt->warps > 0 && src->warp_src.binding_idx &&
-      src->warp_src.vertex_count) {
-    for (psm__i32 i = 0; i < cnt->warps; i++) {
-      psm__i32 vc = src->warp_src.vertex_count[i];
-      if (vc > 0)
-        warp_pos_total += psm__align_to_16(2 * sizeof(psm__f32) * vc);
-      psm__i32 pc = psm__safe_param_count(src, cnt,
-          src->warp_src.binding_idx, i);
-      warp_tmp_total += MAX_COMB(pc);
-    }
-  }
+  psm__u32 rot_tmp_total = psm__sum_max_comb(arena, src, cnt,
+      src->rotation_src.binding_idx, cnt->rotations);
 
-  psm__u32 rot_tmp_total = 0;
-  if (cnt->rotations > 0 && src->rotation_src.binding_idx) {
-    for (psm__i32 i = 0; i < cnt->rotations; i++) {
-      psm__i32 pc = psm__safe_param_count(src, cnt,
-          src->rotation_src.binding_idx, i);
-      rot_tmp_total += MAX_COMB(pc);
-    }
-  }
-
-  psm__u32 am_pos_total = 0, am_tmp_total = 0;
-  if (cnt->art_meshes > 0 && src->art_mesh_src.binding_idx &&
-      src->art_mesh_src.vertex_count) {
-    for (psm__i32 i = 0; i < cnt->art_meshes; i++) {
-      psm__i32 vc = src->art_mesh_src.vertex_count[i];
-      if (vc > 0)
-        am_pos_total += psm__align_to_16(2 * sizeof(psm__f32) * vc);
-      psm__i32 pc = psm__safe_param_count(src, cnt,
-          src->art_mesh_src.binding_idx, i);
-      am_tmp_total += MAX_COMB(pc);
-    }
-  }
+  psm__u32 am_tmp_total = psm__sum_max_comb(arena, src, cnt,
+      src->art_mesh_src.binding_idx, cnt->art_meshes);
+  psm__u32 am_pos_total = psm__sum_pos_bytes(arena,
+      src->art_mesh_src.vertex_count, cnt->art_meshes);
 
   psm__u32 kb_ptr_total = 0, kb_idx_total = 0;
   if (cnt->bindings > 0 && src->binding_src.key_table_idx_len) {
     for (psm__i32 i = 0; i < cnt->bindings; i++) {
       psm__i32 pc = psm__clamp_i32(src->binding_src.key_table_idx_len[i],
           0, PSM__MAX_KEY_TABLES);
-      kb_ptr_total += pc;
-      kb_idx_total += MAX_COMB(pc);
+      kb_ptr_total = psm__acc_add(arena, kb_ptr_total, (psm__u32)pc);
+      kb_idx_total = psm__acc_add(arena, kb_idx_total, PSM__MAX_COMB(pc));
     }
   }
 
-  psm__u32 glue_tmp_total = 0;
-  if (cnt->glues > 0 && src->glue_src.binding_idx) {
-    for (psm__i32 i = 0; i < cnt->glues; i++) {
-      psm__i32 pc = psm__safe_param_count(src, cnt,
-          src->glue_src.binding_idx, i);
-      glue_tmp_total += MAX_COMB(pc);
-    }
-  }
+  psm__u32 glue_tmp_total = psm__sum_max_comb(arena, src, cnt,
+      src->glue_src.binding_idx, cnt->glues);
 
   psm__i32 do_max_count = 0, do_max_level = 0;
   if (cnt->draw_groups > 0 && src->draw_group_src.obj_len &&
@@ -167,7 +191,8 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   if (ver >= csmMocVersion_42 &&
       src->blend_binding_src.bs_constraint_idx_len) {
     for (psm__i32 i = 0; i < cnt->blend_bindings; i++) {
-      bs_constr_ptrs_total += src->blend_binding_src.bs_constraint_idx_len[i];
+      bs_constr_ptrs_total = psm__acc_add(arena, bs_constr_ptrs_total,
+          (psm__u32)src->blend_binding_src.bs_constraint_idx_len[i]);
     }
   }
 
@@ -177,9 +202,9 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     for (psm__i32 i = 0; i < cnt->offscreens; i++) {
       psm__i32 oi = src->offscreen_src.owner_idx[i];
       if (!psm__valid_idx(oi, cnt->parts)) continue;
-      psm__i32 pc = psm__safe_param_count(src, cnt,
+      psm__i32 pc = psm__binding_param_count(src, cnt,
           src->part_src.binding_idx, oi);
-      os_tmp_total += MAX_COMB(pc);
+      os_tmp_total = psm__acc_add(arena, os_tmp_total, PSM__MAX_COMB(pc));
     }
   }
 
@@ -195,6 +220,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
 
   /* Parts */
   psm__alloc_field(m->parts.items, struct psm__part, cnt->parts);
+  psm__alloc_field(m->parts.bindings, struct psm__binding *, cnt->parts);
   psm__alloc_field(m->parts.opacity, psm__f32, cnt->parts);
   psm__alloc_field(m->parts.draw_order, psm__i32, cnt->parts);
   psm__alloc_field(m->parts.input_opacity, psm__f32, cnt->parts);
@@ -219,9 +245,10 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   psm__alloc_field(m->deformers.scr_color, psm__f32, 4 * cnt->deformers);
 
   /* Warp deformers */
-  struct psm__warps *w = &m->deformers.warps;
+  struct psm__warps        *w = &m->deformers.warps;
   struct psm__warp_keydata *wk = &w->keydata;
   psm__alloc_field(w->items, struct psm__warp, cnt->warps);
+  psm__alloc_field(w->bindings, struct psm__binding *, cnt->warps);
   psm__alloc_field(w->enable, bool, cnt->warps);
   psm__alloc_field(w->opacity, psm__f32, cnt->warps);
   psm__alloc_field(w->pos, psm__f32 *, cnt->warps);
@@ -243,9 +270,10 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   psm__alloc_field(wk->scr_color.b, psm__f32, warp_tmp_total);
 
   /* Rotation deformers */
-  struct psm__rotations *r = &m->deformers.rotations;
+  struct psm__rotations        *r = &m->deformers.rotations;
   struct psm__rotation_keydata *rk = &r->keydata;
   psm__alloc_field(r->items, struct psm__rotation, cnt->rotations);
+  psm__alloc_field(r->bindings, struct psm__binding *, cnt->rotations);
   psm__alloc_field(r->enable, bool, cnt->rotations);
   psm__alloc_field(r->opacity, psm__f32, cnt->rotations);
   psm__alloc_field(r->scale, psm__f32, cnt->rotations);
@@ -273,9 +301,10 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   psm__alloc_field(rk->scr_color.b, psm__f32, rot_tmp_total);
 
   /* Art meshes */
-  struct psm__art_meshes *am = &m->art_meshes;
+  struct psm__art_meshes       *am = &m->art_meshes;
   struct psm__art_mesh_keydata *ak = &am->keydata;
   psm__alloc_field(am->meshes, struct psm__art_mesh, cnt->art_meshes);
+  psm__alloc_field(am->bindings, struct psm__binding *, cnt->art_meshes);
   psm__alloc_field(am->enable, bool, cnt->art_meshes);
   psm__alloc_field(am->const_flags, psm__u8, cnt->art_meshes);
   psm__alloc_field(am->change_flags, psm__u8, cnt->art_meshes);
@@ -369,6 +398,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   /* Glues */
   struct psm__glue_keydata *gk = &m->glues.keydata;
   psm__alloc_field(m->glues.items, struct psm__glue, cnt->glues);
+  psm__alloc_field(m->glues.bindings, struct psm__binding *, cnt->glues);
   psm__alloc_field(gk->interp.max_blend, psm__i32, cnt->glues);
   psm__alloc_field(gk->interp.blend_count, psm__i32, cnt->glues);
   psm__alloc_field(gk->interp.tmp, psm__f32, glue_tmp_total);
@@ -378,7 +408,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
 
   /* Offscreen rendering (v5.3+) */
   if (ver >= csmMocVersion_53) {
-    struct psm__offscreens *os = &m->offscreens;
+    struct psm__offscreens        *os = &m->offscreens;
     struct psm__offscreen_keydata *ok = &os->keydata;
     psm__alloc_field(os->surfaces, struct psm__offscreen, cnt->offscreens);
     psm__alloc_field(os->opacity, psm__f32, cnt->offscreens);
@@ -406,7 +436,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
 
   /* Render orders */
   psm__i32 ro_count = cnt->art_meshes +
-      (ver >= csmMocVersion_53 ? cnt->offscreens : 0);
+                      (ver >= csmMocVersion_53 ? cnt->offscreens : 0);
   psm__alloc_field(m->render_order, psm__i32, ro_count);
 
 #undef psm__alloc_field
@@ -484,7 +514,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
       w->pos[i] = pos;
       psm__i32 vc = src->warp_src.vertex_count[i];
       pos = (psm__f32 *)((psm__u8 *)pos +
-          psm__align_to_16(2 * sizeof(psm__f32) * vc));
+                         psm__align_to_16(2 * sizeof(psm__f32) * vc));
     }
   }
 
@@ -495,27 +525,22 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
       am->pos[i] = pos;
       psm__i32 vc = src->art_mesh_src.vertex_count[i];
       pos = (psm__f32 *)((psm__u8 *)pos +
-          psm__align_to_16(2 * sizeof(psm__f32) * vc));
+                         psm__align_to_16(2 * sizeof(psm__f32) * vc));
     }
   }
 
   /* Set up keyform binding internal pointers */
   if (m && kb_ptrs && m->bindings.items) {
     struct psm__key_table **bp = kb_ptrs;
-    struct psm__key_table **bp_end = kb_ptrs + kb_ptr_total;
+
     psm__i32 *ki = kb_indices;
     psm__f32 *kwt = kb_weights;
 
     for (psm__i32 i = 0; i < cnt->bindings; i++) {
       struct psm__binding *kc = &m->bindings.items[i];
+
       psm__i32 bc = src->binding_src.key_table_idx_len[i];
-
-      bc = psm__clamp_i32(bc, 0, PSM__MAX_KEY_TABLES);
       psm__u32 mc = 1 << bc;
-
-      /* Ensure bp doesn't exceed allocated buffer */
-      psm__i32 remaining = (bp < bp_end) ? (psm__i32)(bp_end - bp) : 0;
-      bc = psm__clamp_i32(bc, 0, remaining);
 
       kc->key_tables = bp;
       kc->keyform_idx = ki;
@@ -534,6 +559,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     struct psm__draw_item *ip = do_items;
     for (psm__i32 i = 0; i < cnt->draw_groups; i++) {
       struct psm__draw_group *grp = &m->draw_groups.groups[i];
+
       psm__i32 count = src->draw_group_src.obj_len[i];
       if (!psm__valid_range(ip - do_items, count, cnt->draw_items)) {
         grp->items = NULL;
@@ -552,6 +578,7 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
     struct psm__blend_constraint **ptr = bs_constr_ptrs;
     for (psm__i32 i = 0; i < cnt->blend_bindings; i++) {
       struct psm__blend_binding *bb = &m->blend_bindings.items[i];
+
       psm__i32 cc = src->blend_binding_src.bs_constraint_idx_len[i];
       bb->constraints = ptr;
       bb->constraint_count = cc;
@@ -561,7 +588,6 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
 
   return m2;
 }
-
 
 static void
 psm__init_mul_color(psm__f32 *buf, psm__i32 count)
@@ -585,41 +611,41 @@ static int
 psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 {
   psm__u8 ver = moc->header->version;
-  struct psm__sections *ms = moc->sections;
+
+  struct psm__sections   *ms = moc->sections;
   struct psm__count_info *cnt = ms->count_info;
 
   m->source = moc;
+  m->last_error = moc->header->last_error;   /* inherit the revive outcome */
   m->y_reversed =
       (ms->canvas_info->flag & PSM__CANVAS_FLAG_Y_REVERSED) != 0;
   m->force_update = 1;
 
   /* Parameter bindings */
-  if (cnt->key_tables > 0 && m->key_tables.items &&
-      ms->key_table_src.keys_len && ms->key_table_src.keys_off &&
-      ms->keys_src.key) {
+  /* keys_src.key has count cnt->keys, which can be 0 while key_tables > 0 */
+  if (cnt->key_tables > 0 && ms->keys_src.key) {
     for (psm__i32 i = 0; i < cnt->key_tables; i++) {
       struct psm__key_table *c = &m->key_tables.items[i];
+
       psm__i32 key_cnt = ms->key_table_src.keys_len[i];
       psm__i32 keyform_off = ms->key_table_src.keys_off[i];
       c->key_count = key_cnt;
       c->out_of_range = 1;
-      if (psm__valid_range(keyform_off, key_cnt, cnt->keys))
-        c->keys = &ms->keys_src.key[keyform_off];
-      else
-        c->keys = NULL;
+      /* keys_off + keys_len <= cnt->keys proved by verify_idx */
+      c->keys = &ms->keys_src.key[keyform_off];
     }
   }
 
-  /* Keyform bindings */
-  if (cnt->bindings > 0 && m->bindings.items) {
+  /*
+   * Keyform bindings. The key_table_idx_off/len range and every
+   * key_table_idx_src.idx entry are already proved valid by verify_idx,
+   * so this just wires the pointers.
+   */
+  if (cnt->bindings > 0) {
     for (psm__i32 i = 0; i < cnt->bindings; i++) {
       struct psm__binding *kc = &m->bindings.items[i];
-      psm__i32 bc = ms->binding_src.key_table_idx_len[i];
-      psm__i32 kt_off = ms->binding_src.key_table_idx_off[i];
-
-      PSM__FAIL(!psm__valid_range(kt_off, bc,
-              cnt->key_table_idx), PSM__ERR_FILE_CORRUPT,
-          "binding[%d] OOB: off=%d len=%d max=%d", i, kt_off, bc, cnt->key_table_idx);
+      psm__i32             bc = ms->binding_src.key_table_idx_len[i];
+      psm__i32             kt_off = ms->binding_src.key_table_idx_off[i];
 
       kc->idx_dirty = 1;
       kc->weight_dirty = 1;
@@ -630,26 +656,22 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
       for (psm__i32 j = 0; j < bc; j++) {
         psm__i32 idx = ms->key_table_idx_src.idx[kt_off + j];
-        PSM__FAIL(!psm__valid_idx(idx, cnt->key_tables),
-            PSM__ERR_FILE_CORRUPT, "binding[%d] ptr[%d] OOB: idx=%d max=%d",
-            i, j, idx, cnt->key_tables);
         kc->key_tables[j] = &m->key_tables.items[idx];
       }
     }
   }
 
   /* Parts */
-  if (cnt->parts > 0 && m->parts.items && m->bindings.items &&
-      m->parts.keydata.interp.max_blend) {
+  if (cnt->parts > 0) {
     psm__i32 tmp_len = 0;
     for (psm__i32 i = 0; i < cnt->parts; i++) {
       struct psm__part *part = &m->parts.items[i];
-      psm__i32 bi = ms->part_src.binding_idx[i];
-      if (!psm__valid_idx(bi, cnt->bindings))
-        continue;
+      /* binding_idx valid by verify_idx */
+      psm__i32             bi = ms->part_src.binding_idx[i];
       struct psm__binding *binding = &m->bindings.items[bi];
 
       part->binding = binding;
+      m->parts.bindings[i] = binding;
       part->parent_part_idx = ms->part_src.parent_part_idx[i];
       part->local_enable = ms->part_src.enable[i];
 
@@ -659,11 +681,6 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         m->parts.offscreen_src_idx[i] = -1;
 
       psm__i32 mc = binding->max_blend;
-      psm__i32 kb = ms->part_src.keyform_off[i];
-      if (!psm__valid_range(kb, mc, cnt->part_keyforms)) {
-        part->binding = NULL;
-        continue;
-      }
       m->parts.keydata.interp.max_blend[i] = mc;
       tmp_len += mc;
     }
@@ -671,11 +688,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
   }
 
   /* Parameters */
-  if (cnt->parameters > 0 && m->params.items && m->params.input_value &&
-      ms->param_src.minimum_value && ms->param_src.maximum_value &&
-      ms->param_src.default_value && ms->param_src.repeat &&
-      ms->param_src.decimal_places && ms->param_src.key_table_off &&
-      ms->param_src.key_table_len) {
+  if (cnt->parameters > 0) {
     for (psm__i32 i = 0; i < cnt->parameters; i++) {
       struct psm__param *param = &m->params.items[i];
 
@@ -703,7 +716,8 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         int rc = psm__valid_opt_range(kt_off, kt_count, cnt->key_tables);
         if (rc < 0)
           PSM__LOGF("param[%d]: binding range "
-              "[%d, %d) OOB (max %d)", i, kt_off, kt_off + kt_count,
+                    "[%d, %d) OOB (max %d)",
+              i, kt_off, kt_off + kt_count,
               cnt->key_tables);
         if (rc == 1) {
           param->key_tables = &m->key_tables.items[kt_off];
@@ -724,13 +738,11 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
   }
 
   /* Deformers */
-  if (cnt->deformers > 0 && m->deformers.nodes && m->bindings.items) {
+  if (cnt->deformers > 0) {
     for (psm__i32 i = 0; i < cnt->deformers; i++) {
       struct psm__deformer_node *node = &m->deformers.nodes[i];
-      psm__i32 bi = ms->deformer_src.binding_idx[i];
-      if (!psm__valid_idx(bi, cnt->bindings))
-        continue;
 
+      psm__i32 bi = ms->deformer_src.binding_idx[i]; /* valid by verify_idx */
       node->binding = &m->bindings.items[bi];
       node->parent_part_idx = ms->deformer_src.parent_part_idx[i];
       node->parent_deformer_idx = ms->deformer_src.parent_deformer_idx[i];
@@ -743,18 +755,17 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
   /* Warp deformers */
   {
     struct psm__warp_src *ws = &ms->warp_src;
-    struct psm__interp *interp = &m->deformers.warps.keydata.interp;
-    if (cnt->warps > 0 && m->deformers.warps.items &&
-        m->bindings.items && interp->max_blend) {
+    struct psm__interp   *interp = &m->deformers.warps.keydata.interp;
+    if (cnt->warps > 0) {
       psm__i32 tmp_len = 0;
       for (psm__i32 i = 0; i < cnt->warps; i++) {
         struct psm__warp *warp = &m->deformers.warps.items[i];
-        psm__i32 bi = ws->binding_idx[i];
-        if (!psm__valid_idx(bi, cnt->bindings))
-          continue;
+        /* binding_idx valid by verify_idx */
+        psm__i32             bi = ws->binding_idx[i];
         struct psm__binding *binding = &m->bindings.items[bi];
 
         warp->binding = binding;
+        m->deformers.warps.bindings[i] = binding;
         warp->row = ws->row[i];
         warp->col = ws->col[i];
         warp->vertex_count = ws->vertex_count[i];
@@ -762,11 +773,6 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
           warp->quad_transform = ws->quad_transform[i];
 
         psm__i32 mc = binding->max_blend;
-        psm__i32 kb = ws->keyform_off[i];
-        if (!psm__valid_range(kb, mc, cnt->warp_keyforms)) {
-          warp->binding = NULL;
-          continue;
-        }
         interp->max_blend[i] = mc;
         tmp_len += mc;
       }
@@ -777,26 +783,21 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
   /* Rotation deformers */
   {
     struct psm__rotation_src *rs = &ms->rotation_src;
-    struct psm__interp *interp = &m->deformers.rotations.keydata.interp;
-    if (cnt->rotations > 0 && m->deformers.rotations.items &&
-        m->bindings.items && interp->max_blend) {
+    struct psm__interp       *interp = &m->deformers.rotations.keydata.interp;
+    if (cnt->rotations > 0) {
       psm__i32 tmp_len = 0;
       for (psm__i32 i = 0; i < cnt->rotations; i++) {
         struct psm__rotation *rot = &m->deformers.rotations.items[i];
-        psm__i32 bi = rs->binding_idx[i];
-        if (!psm__valid_idx(bi, cnt->bindings))
-          continue;
+
+        /* binding_idx valid by verify_idx */
+        psm__i32             bi = rs->binding_idx[i];
         struct psm__binding *binding = &m->bindings.items[bi];
 
         rot->binding = binding;
+        m->deformers.rotations.bindings[i] = binding;
         rot->base_angle = rs->base_angle[i];
 
         psm__i32 mc = binding->max_blend;
-        psm__i32 kb = rs->keyform_off[i];
-        if (!psm__valid_range(kb, mc, cnt->rotation_keyforms)) {
-          rot->binding = NULL;
-          continue;
-        }
         interp->max_blend[i] = mc;
         tmp_len += mc;
       }
@@ -805,17 +806,17 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
   }
 
   /* Art meshes */
-  if (cnt->art_meshes > 0 && m->art_meshes.meshes && m->bindings.items &&
-      m->art_meshes.keydata.interp.max_blend) {
+  if (cnt->art_meshes > 0) {
     psm__i32 tmp_len = 0;
     for (psm__i32 i = 0; i < cnt->art_meshes; i++) {
       struct psm__art_mesh *mesh = &m->art_meshes.meshes[i];
-      psm__i32 bi = ms->art_mesh_src.binding_idx[i];
-      if (!psm__valid_idx(bi, cnt->bindings))
-        continue;
+
+      /* binding_idx valid by verify_idx */
+      psm__i32             bi = ms->art_mesh_src.binding_idx[i];
       struct psm__binding *binding = &m->bindings.items[bi];
 
       mesh->binding = binding;
+      m->art_meshes.bindings[i] = binding;
       mesh->parent_part_idx = ms->art_mesh_src.parent_part_idx[i];
       mesh->parent_deformer_idx = ms->art_mesh_src.parent_deformer_idx[i];
       mesh->vertex_count = ms->art_mesh_src.vertex_count[i];
@@ -824,38 +825,35 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
           ms->art_mesh_src.drawable_flag[i];
 
       if (ver < csmMocVersion_53) {
-        psm__u8 flag = ms->art_mesh_src.drawable_flag[i];
+        psm__u8  flag = ms->art_mesh_src.drawable_flag[i];
         psm__i32 blend_mode = (flag & csmBlendMultiplicative)
-                ? csmColorBlendType_MultiplyCompatible
-                : csmColorBlendType_Normal;
+                                  ? csmColorBlendType_MultiplyCompatible
+                                  : csmColorBlendType_Normal;
         if (flag & csmBlendAdditive)
           blend_mode = csmColorBlendType_AddCompatible;
         m->art_meshes.blend_mode[i] = blend_mode;
       } else {
-        psm__i32 blend_mode = psm__remap_blend_mode(
-            ms->art_mesh_src.blend_mode[i]);
-        m->art_meshes.blend_mode[i] = blend_mode;
+        psm__i32 raw = ms->art_mesh_src.blend_mode[i];
+        m->art_meshes.blend_mode[i] = psm__remap_blend_mode(raw);
 #if PSM_COMPAT_VERSION < 0x06000000L
         /*
          * v5 callers read blend mode from constant flags
          * (csmGetDrawableBlendModes doesn't exist in v5).
-         * Bake the remapped mode into const_flags.
+         * Only the original compatible modes (raw 1=AddCompatible,
+         * 2=MultiplyCompatible) set a flag bit; v5.3 extended modes (raw >= 3)
+         * leave both bits unset, matching the v6 oracle -- keying off the
+         * remapped value here wrongly flagged every extended mode.
          */
         psm__u8 *cf = &m->art_meshes.const_flags[i];
         *cf &= ~(csmBlendAdditive | csmBlendMultiplicative);
-        if (blend_mode == csmColorBlendType_AddCompatible)
+        if (raw == csmColorBlendType_AddCompatible)
           *cf |= csmBlendAdditive;
-        else if (blend_mode == csmColorBlendType_MultiplyCompatible)
+        else if (raw == csmColorBlendType_MultiplyCompatible)
           *cf |= csmBlendMultiplicative;
 #endif
       }
 
       psm__i32 mc = binding->max_blend;
-      psm__i32 kb = ms->art_mesh_src.keyform_off[i];
-      if (!psm__valid_range(kb, mc, cnt->art_mesh_keyforms)) {
-        mesh->binding = NULL;
-        continue;
-      }
       m->art_meshes.keydata.interp.max_blend[i] = mc;
       tmp_len += mc;
     }
@@ -864,7 +862,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
   /* Link keyform color data to MOC3 source (v4.2+). */
   if (ver >= csmMocVersion_42) {
-    struct psm__warp_keydata *wk = &m->deformers.warps.keydata;
+    struct psm__warp_keydata     *wk = &m->deformers.warps.keydata;
     struct psm__rotation_keydata *rk = &m->deformers.rotations.keydata;
     struct psm__art_mesh_keydata *ak = &m->art_meshes.keydata;
     {
@@ -875,7 +873,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
       if (mc->r && sc->r && wk->mul_color.r &&
           ms->warp_key_src.key_mul_color_off &&
           ms->warp_key_src.key_scr_color_off) {
-        psm__i32 n = wk->interp.tmp_len;
+        psm__i32  n = wk->interp.tmp_len;
         psm__i32 *mb = ms->warp_key_src.key_mul_color_off;
         psm__i32 *sb = ms->warp_key_src.key_scr_color_off;
         if (n > cnt->warp_keyforms)
@@ -899,7 +897,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
       if (mc->r && sc->r && rk->mul_color.r &&
           ms->rotation_key_src.key_mul_color_off &&
           ms->rotation_key_src.key_scr_color_off) {
-        psm__i32 n = rk->interp.tmp_len;
+        psm__i32  n = rk->interp.tmp_len;
         psm__i32 *mb = ms->rotation_key_src.key_mul_color_off;
         psm__i32 *sb = ms->rotation_key_src.key_scr_color_off;
         if (n > cnt->rotation_keyforms)
@@ -923,7 +921,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
       if (mc->r && sc->r && ak->mul_color.r &&
           ms->art_mesh_key_src.key_mul_color_off &&
           ms->art_mesh_key_src.key_scr_color_off) {
-        psm__i32 n = ak->interp.tmp_len;
+        psm__i32  n = ak->interp.tmp_len;
         psm__i32 *mb = ms->art_mesh_key_src.key_mul_color_off;
         psm__i32 *sb = ms->art_mesh_key_src.key_scr_color_off;
         if (n > cnt->art_mesh_keyforms)
@@ -947,13 +945,14 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
   /* Draw order groups */
   {
-    struct psm__draw_group_src *gs = &ms->draw_group_src;
+    struct psm__draw_group_src     *gs = &ms->draw_group_src;
     struct psm__draw_group_obj_src *os = &ms->draw_group_obj_src;
-    if (cnt->draw_groups > 0 && m->draw_groups.groups &&
-        gs->obj_total_count && gs->max_order && gs->min_order &&
-        gs->obj_off && os->type && os->idx && os->self_group_idx) {
+    /* os->* have count cnt->draw_items, which differs from cnt->draw_groups */
+    if (cnt->draw_groups > 0 &&
+        os->type && os->idx && os->self_group_idx) {
       for (psm__i32 i = 0; i < cnt->draw_groups; i++) {
         struct psm__draw_group *grp = &m->draw_groups.groups[i];
+
         psm__i32 max_order = gs->max_order[i];
         psm__i32 min_order = gs->min_order[i];
         psm__i32 base_idx = gs->obj_off[i];
@@ -964,19 +963,14 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         grp->order_level = psm__safe_order_level(max_order, min_order);
         grp->cursor = 0;
 
-        if (!psm__valid_range(base_idx, grp->count, cnt->draw_items)) {
-          PSM__LOGF("draw_order_group[%d]: "
-              "range [%d, %d) OOB (max %d)", i, base_idx,
-              base_idx + grp->count, cnt->draw_items);
-          grp->count = 0;
-        } else {
-          for (psm__i32 j = 0; j < grp->count; j++) {
-            struct psm__draw_item *item = &grp->items[j];
-            item->object_type = os->type[base_idx + j];
-            item->object_idx = os->idx[base_idx + j];
-            item->group_idx = os->self_group_idx[base_idx + j];
-            item->draw_order = 0;
-          }
+        /* obj_off + obj_len <= cnt->draw_items proved by verify_idx;
+         * count>0 implies grp->items != NULL (set together in alloc) */
+        for (psm__i32 j = 0; j < grp->count; j++) {
+          struct psm__draw_item *item = &grp->items[j];
+          item->object_type = os->type[base_idx + j];
+          item->object_idx = os->idx[base_idx + j];
+          item->group_idx = os->self_group_idx[base_idx + j];
+          item->draw_order = 0;
         }
       }
     }
@@ -984,48 +978,31 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
 
   /* Glues */
   {
-    struct psm__glue_src *gls = &ms->glue_src;
+    struct psm__glue_src      *gls = &ms->glue_src;
     struct psm__glue_info_src *gis = &ms->glue_info_src;
+
     psm__i32 *max_combs = m->glues.keydata.interp.max_blend;
-    if (cnt->glues > 0 && m->glues.items && m->bindings.items && max_combs &&
-        gls->binding_idx && gls->art_mesh_idx_a &&
-        gls->art_mesh_idx_b && gls->info_len && gls->info_off &&
-        gis->weight && gis->pos_idx) {
+    /* gis->* have count cnt->glue_info, which differs from cnt->glues */
+    if (cnt->glues > 0 && gis->weight && gis->pos_idx) {
       psm__i32 tmp_len = 0;
       for (psm__i32 i = 0; i < cnt->glues; i++) {
         struct psm__glue *glue = &m->glues.items[i];
-        psm__i32 bi = gls->binding_idx[i];
-        if (!psm__valid_idx(bi, cnt->bindings)) {
-          glue->binding = NULL;
-          continue;
-        }
+        psm__i32          bi = gls->binding_idx[i]; /* valid by verify_idx */
+
         struct psm__binding *binding = &m->bindings.items[bi];
-        psm__i32 info_off = gls->info_off[i];
+        psm__i32             info_off = gls->info_off[i];
 
         glue->binding = binding;
+        m->glues.bindings[i] = binding;
         glue->mesh_idx0 = gls->art_mesh_idx_a[i];
         glue->mesh_idx1 = gls->art_mesh_idx_b[i];
         glue->glue_info_count = gls->info_len[i];
 
-        if (!psm__valid_range(info_off, glue->glue_info_count,
-                cnt->glue_info)) {
-          PSM__LOGF("glue[%d]: info range "
-              "[%d, %d) OOB (max %d)", i, info_off,
-              info_off + glue->glue_info_count, cnt->glue_info);
-          glue->weights = NULL;
-          glue->pos_idx = NULL;
-          glue->glue_info_count = 0;
-        } else {
-          glue->weights = &gis->weight[info_off];
-          glue->pos_idx = &gis->pos_idx[info_off];
-        }
+        /* info_off + info_len <= cnt->glue_info proved by verify_idx */
+        glue->weights = &gis->weight[info_off];
+        glue->pos_idx = &gis->pos_idx[info_off];
 
         psm__i32 mc = binding->max_blend;
-        psm__i32 kb = gls->keyform_off[i];
-        if (!psm__valid_range(kb, mc, cnt->glue_keyforms)) {
-          glue->binding = NULL;
-          continue;
-        }
         max_combs[i] = mc;
         tmp_len += mc;
       }
@@ -1042,6 +1019,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         bscs->value_len && bsvs->key && bsvs->weight) {
       for (psm__i32 i = 0; i < cnt->bs_constraints; i++) {
         struct psm__blend_constraint *constr = &m->blend_constraints.items[i];
+
         psm__i32 pi = bscs->parameter_idx[i];
         psm__i32 vb = bscs->value_off[i];
         psm__i32 vc = bscs->value_len[i];
@@ -1070,9 +1048,11 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     }
 
     struct psm__blend_key_table_src *ba_src = &ms->blend_key_table_src;
-    if (ba_src->keys_len && ba_src->keys_off && ba_src->base_key_idx) {
+    if (ba_src->keys_len && ba_src->keys_off && ba_src->base_key_idx &&
+        ms->keys_src.key) {
       for (psm__i32 i = 0; i < cnt->blend_key_tables; i++) {
         struct psm__blend_key_table *ba = &m->blend_key_tables.items[i];
+
         psm__i32 kc = ba_src->keys_len[i];
         psm__i32 kb = ba_src->keys_off[i];
         if (psm__valid_range(kb, kc, cnt->keys)) {
@@ -1080,7 +1060,8 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
           ba->keys = &ms->keys_src.key[kb];
         } else {
           PSM__LOGF("blend_pb[%d]: key range "
-              "[%d, %d) OOB (max %d)", i, kb, kb + kc, cnt->keys);
+                    "[%d, %d) OOB (max %d)",
+              i, kb, kb + kc, cnt->keys);
           ba->keys = NULL;
           ba->key_count = 0;
         }
@@ -1111,9 +1092,10 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
     if (bb_src->key_table_idx && bb_src->key_bs_off) {
       for (psm__i32 i = 0; i < cnt->blend_bindings; i++) {
         struct psm__blend_binding *bb = &m->blend_bindings.items[i];
+
         psm__i32 bpi = bb_src->key_table_idx[i];
         if (m->blend_key_tables.items && psm__valid_idx(bpi,
-                cnt->blend_key_tables))
+                                             cnt->blend_key_tables))
           bb->key_table = &m->blend_key_tables.items[bpi];
         else
           bb->key_table = NULL;
@@ -1217,11 +1199,12 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
   /* Offscreen rendering (v5.3+) */
   if (ver >= csmMocVersion_53) {
     if (cnt->offscreens > 0 && ms->offscreen_src.owner_idx) {
-      psm__i32 tmp_len = 0;
+      psm__i32  tmp_len = 0;
       psm__i32 *os_key_idx = ms->part_key_src.key_idx;
 
       for (psm__i32 i = 0; i < cnt->offscreens; i++) {
         struct psm__offscreen *surf = &m->offscreens.surfaces[i];
+
         psm__i32 oi = ms->offscreen_src.owner_idx[i];
 
         if (!psm__valid_idx(oi, cnt->parts)) {
@@ -1326,8 +1309,8 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
       psm__i32 best = kt_off, best_kc = 0;
       for (psm__i32 j = 0; j < kt_count; j++) {
         psm__i32 idx = kt_off + j;
-        if (idx < cnt->key_tables && ms->key_table_src.keys_len[idx]
-                > best_kc) {
+        if (idx < cnt->key_tables &&
+            ms->key_table_src.keys_len[idx] > best_kc) {
           best_kc = ms->key_table_src.keys_len[idx];
           best = idx;
         }
@@ -1426,7 +1409,6 @@ psm__init_model(struct psm__model **out,
   return PSM__OK;
 }
 
-
 PSMDEF unsigned int
 csmGetSizeofModel(const csmMoc *moc)
 {
@@ -1440,8 +1422,17 @@ PSMDEF csmModel *
 csmInitializeModelInPlace(const csmMoc *moc, void *address, unsigned int size)
 {
   struct psm__model *model;
-  PSM__FAILM(psm__init_model(&model, psm__moc_to_data(moc),
-      address, size) != PSM__OK, NULL, "could not init model");
+
+  int err = psm__init_model(&model, psm__moc_to_data(moc), address, size);
+
+  /*
+   * Record the outcome in the moc header so csmGetMocError can explain an
+   * init failure, just as it does for a failed revive. Written on success
+   * too (PSM__OK), so a later good init clears a prior failure's code.
+   */
+  ((struct psm__moc3_header *)moc)->last_error = err;
+
+  PSM__FAILM(err != PSM__OK, NULL, "could not init model");
   return (csmModel *)model;
 }
 
@@ -1449,7 +1440,7 @@ PSMDEF void
 csmReadCanvasInfo(const csmModel *model, csmVector2 *outSizeInPixels,
     csmVector2 *outOriginInPixels, float *outPixelsPerUnit)
 {
-  const struct psm__model *m = (const struct psm__model *)model;
+  const struct psm__model       *m = (const struct psm__model *)model;
   const struct psm__canvas_info *c = m->source->sections->canvas_info;
   outSizeInPixels->X = c->width;
   outSizeInPixels->Y = c->height;
@@ -1458,3 +1449,34 @@ csmReadCanvasInfo(const csmModel *model, csmVector2 *outSizeInPixels,
   *outPixelsPerUnit = c->pix_per_unit;
 }
 
+/* Purism Core extension: see PurismCore.h. */
+PSMDEF csmError
+csmGetLastError(const csmModel *model)
+{
+  if (!model)
+    return csmError_NoError;
+  return (csmError)((const struct psm__model *)model)->last_error;
+}
+
+PSMDEF const char *
+csmGetErrorString(csmError error)
+{
+  switch (error) {
+  case csmError_NoError:
+    return "no error";
+  case csmError_Failed:
+    return "operation failed";
+  case csmError_ParameterRange:
+    return "parameter out of range";
+  case csmError_FileUnrecognized:
+    return "unrecognized MOC3 file";
+  case csmError_FileCorrupt:
+    return "corrupt MOC3 file";
+  case csmError_InvalidData:
+    return "invalid data";
+  case csmError_InvalidParameter:
+    return "invalid parameter";
+  default:
+    return "unknown error";
+  }
+}

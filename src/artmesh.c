@@ -23,13 +23,15 @@ psm__enable_art_meshes(struct psm__model *m)
     return;
 
   struct psm__art_mesh *meshes = m->art_meshes.meshes;
+
   bool *def_en = m->deformers.enable;
   bool *part_en = m->parts.enable;
   bool *enable = m->art_meshes.enable;
 
   for (psm__i32 i = 0; i < count; i++) {
     struct psm__art_mesh *am = &meshes[i];
-    bool en = am->local_enable;
+
+    bool     en = am->local_enable;
     psm__i32 pp = am->parent_part_idx;
     psm__i32 pd = am->parent_deformer_idx;
 
@@ -54,15 +56,14 @@ psm__gather_art_meshes(struct psm__model *m)
     return;
 
   psm__i32 *kb = ms->art_mesh_src.keyform_off;
-  psm__i32 max_keyforms = ms->count_info->art_mesh_keyforms;
+  psm__i32  max_keyforms = ms->count_info->art_mesh_keyforms;
+
   struct psm__art_mesh_keydata *kd = &m->art_meshes.keydata;
 
-  struct psm__binding *bindings[count];
-  for (psm__i32 i = 0; i < count; i++)
-    bindings[i] = meshes[i].binding;
+  struct psm__binding *const *bindings = m->art_meshes.bindings;
 
   struct psm__gather_channel ch[] = {
-    { ms->art_mesh_key_src.opacity,    kd->opacity },
+    { ms->art_mesh_key_src.opacity, kd->opacity },
     { ms->art_mesh_key_src.draw_order, kd->draw_order },
   };
   psm__gather_scalars(count, bindings, kb, max_keyforms, &kd->interp, ch, 2);
@@ -92,7 +93,8 @@ psm__apply_parts_to_meshes(struct psm__model *m)
     return;
 
   struct psm__art_mesh *meshes = m->art_meshes.meshes;
-  bool *en = m->art_meshes.enable;
+
+  bool     *en = m->art_meshes.enable;
   psm__f32 *part_opa = m->parts.opacity;
   psm__i32 *part_off = m->parts.offscreen_src_idx;
   psm__f32 *am_opa = m->art_meshes.opacity;
@@ -116,7 +118,10 @@ psm__apply_parts_to_meshes(struct psm__model *m)
 
   for (psm__i32 i = 0; i < count; i++) {
     psm__i32 ci = i * 4;
-    if (!en[i] || am_opa[i] == 0.0f)
+    /* Color (multiply/screen) is a separate channel from render visibility;
+     * Cubism propagates the parent deformer's color to the child mesh even at
+     * opacity 0, so this must NOT skip on am_opa[i] == 0. */
+    if (!en[i])
       continue;
     psm__i32 pd = meshes[i].parent_deformer_idx;
     if (pd == -1)
@@ -134,9 +139,9 @@ psm__apply_parts_to_meshes(struct psm__model *m)
     am_mul[ci + 2] = psm__clamp_f32_01(b);
     am_mul[ci + 3] = 1.0f;
 
-    r = fmaf(-am_scr[ci + 0], ps[0], am_scr[ci + 0] + ps[0]);
-    g = fmaf(-am_scr[ci + 1], ps[1], am_scr[ci + 1] + ps[1]);
-    b = fmaf(-am_scr[ci + 2], ps[2], am_scr[ci + 2] + ps[2]);
+    r = am_scr[ci + 0] + ps[0] - am_scr[ci + 0] * ps[0];
+    g = am_scr[ci + 1] + ps[1] - am_scr[ci + 1] * ps[1];
+    b = am_scr[ci + 2] + ps[2] - am_scr[ci + 2] * ps[2];
 
     am_scr[ci + 0] = psm__clamp_f32_01(r);
     am_scr[ci + 1] = psm__clamp_f32_01(g);
@@ -144,7 +149,6 @@ psm__apply_parts_to_meshes(struct psm__model *m)
     am_scr[ci + 3] = 1.0f;
   }
 }
-
 
 PSMDEF int
 csmGetDrawableCount(const csmModel *model)
@@ -157,8 +161,7 @@ PSMDEF const char **
 csmGetDrawableIds(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  struct psm__sections *ms = m->source->sections;
-  return ms->art_mesh_src.id_runtime;
+  return m->source->sections->art_mesh_src.id_runtime;
 }
 
 PSMDEF const csmFlags *
@@ -188,8 +191,7 @@ PSMDEF const int *
 csmGetDrawableTextureIndices(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  struct psm__sections *ms = m->source->sections;
-  return ms->art_mesh_src.texture_no;
+  return m->source->sections->art_mesh_src.texture_no;
 }
 
 PSMDEF const int *
@@ -210,24 +212,21 @@ PSMDEF const int *
 csmGetDrawableMaskCounts(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  struct psm__sections *ms = m->source->sections;
-  return ms->art_mesh_src.mask_len;
+  return m->source->sections->art_mesh_src.mask_len;
 }
 
 PSMDEF const int **
 csmGetDrawableMasks(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  struct psm__sections *ms = m->source->sections;
-  return ms->art_mesh_src.drawable_mask_runtime;
+  return m->source->sections->art_mesh_src.drawable_mask_runtime;
 }
 
 PSMDEF const int *
 csmGetDrawableVertexCounts(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  struct psm__sections *ms = m->source->sections;
-  return ms->art_mesh_src.vertex_count;
+  return m->source->sections->art_mesh_src.vertex_count;
 }
 
 PSMDEF const csmVector2 **
@@ -241,24 +240,22 @@ PSMDEF const csmVector2 **
 csmGetDrawableVertexUvs(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  struct psm__sections *ms = m->source->sections;
-  return (const csmVector2 **)ms->art_mesh_src.uv_runtime;
+  return (const csmVector2 **)m->source->sections->art_mesh_src.uv_runtime;
 }
 
 PSMDEF const int *
 csmGetDrawableIndexCounts(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  struct psm__sections *ms = m->source->sections;
-  return ms->art_mesh_src.idx_len;
+  return m->source->sections->art_mesh_src.idx_len;
 }
 
 PSMDEF const unsigned short **
 csmGetDrawableIndices(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  struct psm__sections *ms = m->source->sections;
-  return (const unsigned short **)ms->art_mesh_src.pos_idx_runtime;
+  return (const unsigned short **)
+      m->source->sections->art_mesh_src.pos_idx_runtime;
 }
 
 PSMDEF const csmVector4 *
@@ -279,6 +276,5 @@ PSMDEF const int *
 csmGetDrawableParentPartIndices(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  struct psm__sections *ms = m->source->sections;
-  return ms->art_mesh_src.parent_part_idx;
+  return m->source->sections->art_mesh_src.parent_part_idx;
 }

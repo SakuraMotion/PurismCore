@@ -1,0 +1,5 @@
+# src/samples is excluded from the library house style:
+#  - src/tests: includes vendored (partcl.h) and generated (refdata.h) headers
+#  - src/samples: standalone example code (the viewer keeps its own .clang-format)
+DisableFormat: true
+SortIncludes: Never

@@ -1,0 +1,31 @@
+# Purism Core house style: BSD KNF / OpenBSD style(9)-ish.
+#  - return type on its own line for function definitions
+#  - column-aligned declarations and #define values
+#  - 2-space indent, control-statement braces attached, function braces on own line
+#  - preprocessor directives indented after the '#'
+# Function-like "statement" macros (control-flow bodies) are hand-aligned and
+# fenced with `// clang-format off/on` where this config would reflow them.
+Language:        Cpp
+BasedOnStyle:    LLVM
+IndentWidth:     2
+UseTab:          Never
+ContinuationIndentWidth: 4
+ColumnLimit:     0
+AlignAfterOpenBracket: DontAlign
+BreakBeforeBraces: Linux
+AlwaysBreakAfterReturnType: AllDefinitions
+PointerAlignment: Right
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: false
+SpaceBeforeParens: ControlStatements
+Cpp11BracedListStyle: false
+IndentCaseLabels: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+SortIncludes:    Never
+AlignEscapedNewlines: DontAlign
+AlignTrailingComments:
+  Kind:          Leave
+IndentPPDirectives: AfterHash
+AlignConsecutiveDeclarations: true
+AlignConsecutiveMacros: true

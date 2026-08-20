@@ -4,7 +4,7 @@ includedir=${prefix}/include
 
 Name: PurismCore@ABI_SUFFIX@
 Description: Live2D Cubism Core compatible library (@ABI@ ABI)
-Version: 1.0.1
+Version: @VERSION@
 Cflags: -I${includedir}
 Libs: -L${libdir} -lPurismCore@ABI_SUFFIX@
 Libs.private: -lm

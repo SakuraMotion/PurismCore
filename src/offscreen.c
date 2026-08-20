@@ -24,6 +24,7 @@ psm__enable_offscreens(struct psm__model *m)
     return;
 
   struct psm__offscreen *surfaces = m->offscreens.surfaces;
+
   bool *enable = m->offscreens.enable;
 
   for (psm__i32 i = 0; i < count; i++) {
@@ -47,12 +48,12 @@ psm__gather_offscreens(struct psm__model *m)
     return;
 
   struct psm__sections *ms = m->source->sections;
-  psm__f32 *opa_src = ms->offscreen_key_src.opacity;
+  psm__f32             *opa_src = ms->offscreen_key_src.opacity;
   if (!opa_src)
     return;
 
-  psm__i32 max_keyforms = ms->count_info->offscreen_keyforms;
   struct psm__offscreen_keydata *kd = &m->offscreens.keydata;
+
   psm__i32 off = 0;
 
   /* Opacity and weights */
@@ -70,12 +71,13 @@ psm__gather_offscreens(struct psm__model *m)
 
     if (b->idx_dirty && nc > 0) {
       psm__i32 *kp = surfaces[i].keyform_idx;
-      psm__i32 ki = kp ? *kp : -1;
-      if (ki != -1) {
+      psm__i32  ki = kp ? *kp : -1;
+      /* ki < 0 means "no keyforms"; any negative (not just -1) must be
+       * skipped, else idx goes out of bounds (matches the color loop and
+       * the psm__verify_offscreen_window load check). */
+      if (ki >= 0) {
         for (psm__i32 j = 0; j < nc; j++) {
           psm__i32 idx = b->keyform_idx[j] + ki;
-          if ((psm__u32)idx >= (psm__u32)max_keyforms)
-            continue;
           kd->opacity[off + j] = opa_src[idx];
         }
       }
@@ -100,7 +102,6 @@ psm__gather_offscreens(struct psm__model *m)
   if (!col_off || !mr || !mg || !mb || !sr || !sg || !sb)
     return;
 
-  psm__i32 max_kf_colors = ms->count_info->keyform_mul_colors;
   off = 0;
 
   for (psm__i32 i = 0; i < count; i++) {
@@ -112,17 +113,15 @@ psm__gather_offscreens(struct psm__model *m)
     }
 
     psm__i32 *kp = surfaces[i].keyform_idx;
-    psm__i32 ki = kp ? *kp : -1;
-    psm__i32 nc = b->blend_count;
+    psm__i32  ki = kp ? *kp : -1;
+    psm__i32  nc = b->blend_count;
 
     if (ki >= 0 && nc > 0) {
-      if ((psm__u32)ki >= (psm__u32)max_keyforms)
-        goto skip_color;
       psm__i32 cb = col_off[ki];
+      if (cb < 0)   /* offscreen keyform has no color override */
+        goto skip_color;
       for (psm__i32 j = 0; j < nc; j++) {
         psm__i32 idx = b->keyform_idx[j] + cb;
-        if ((psm__u32)idx >= (psm__u32)max_kf_colors)
-          continue;
         kd->mul_color.r[off + j] = mr[idx];
         kd->mul_color.g[off + j] = mg[idx];
         kd->mul_color.b[off + j] = mb[idx];
@@ -131,7 +130,7 @@ psm__gather_offscreens(struct psm__model *m)
         kd->scr_color.b[off + j] = sb[idx];
       }
     }
-skip_color:
+  skip_color:
     off += b->max_blend;
   }
 }
@@ -148,8 +147,7 @@ PSMDEF const int *
 csmGetOffscreenBlendModes(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  const struct psm__sections *ms = m->source->sections;
-  return ms->offscreen_src.blend_mode;
+  return m->source->sections->offscreen_src.blend_mode;
 }
 
 PSMDEF const float *
@@ -163,8 +161,7 @@ PSMDEF const int *
 csmGetOffscreenOwnerIndices(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  const struct psm__sections *ms = m->source->sections;
-  return ms->offscreen_src.owner_idx;
+  return m->source->sections->offscreen_src.owner_idx;
 }
 
 PSMDEF const csmVector4 *
@@ -185,23 +182,20 @@ PSMDEF const int *
 csmGetOffscreenMaskCounts(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  const struct psm__sections *ms = m->source->sections;
-  return ms->offscreen_src.mask_len;
+  return m->source->sections->offscreen_src.mask_len;
 }
 
 PSMDEF const int **
 csmGetOffscreenMasks(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  const struct psm__sections *ms = m->source->sections;
-  return ms->offscreen_src.drawable_mask_runtime;
+  return m->source->sections->offscreen_src.drawable_mask_runtime;
 }
 
 PSMDEF const csmFlags *
 csmGetOffscreenConstantFlags(const csmModel *model)
 {
   const struct psm__model *m = (const struct psm__model *)model;
-  const struct psm__sections *ms = m->source->sections;
-  return (const csmFlags *)ms->offscreen_src.drawable_flag;
+  return (const csmFlags *)m->source->sections->offscreen_src.drawable_flag;
 }
 #endif /* PSM_COMPAT_VERSION >= 0x06000000L */

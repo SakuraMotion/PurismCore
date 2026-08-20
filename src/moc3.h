@@ -17,12 +17,16 @@ struct psm__count_info;
 struct psm__canvas_info;
 
 struct psm__moc3_header {
-  char magic[4];
+  char    magic[4];
   psm__u8 version;
   psm__u8 endian_flag;
-  psm__u8 _reserved1[2];
+  psm__u8 padding1_[2];
+
   struct psm__moc3_data *data;
-  psm__u8 _reserved2[56 - sizeof(void *)];
+
+  psm__i32 last_error;
+
+  psm__u8 padding2_[52 - sizeof(void *)];
 };
 
 psm__static_assert(sizeof(struct psm__moc3_header) == 64,
@@ -30,8 +34,8 @@ psm__static_assert(sizeof(struct psm__moc3_header) == 64,
 
 struct psm__moc3_data {
   struct psm__moc3_header *header;
-  psm__u32 *offsets;
-  struct psm__sections *sections;
+  psm__u32                *offsets;
+  struct psm__sections    *sections;
 };
 
 struct psm__id {
@@ -77,8 +81,13 @@ struct psm__count_info {
   psm__i32 offscreens;
   psm__i32 offscreen_keyforms;
   psm__i32 bs_offscreens;
-  psm__i32 _reserved;
+  psm__i32 padding_[26];
 };
+
+psm__static_assert(sizeof(struct psm__count_info) == 64 * sizeof(psm__i32),
+    "count_info must be 256 bytes");
+
+#define PSM__COUNT_INFO_INTS(ver) ((ver) >= csmMocVersion_50 ? 64 : 32)
 
 struct psm__canvas_info {
   psm__f32 pix_per_unit;
@@ -86,31 +95,31 @@ struct psm__canvas_info {
   psm__f32 origin_y;
   psm__f32 width;
   psm__f32 height;
-  psm__u8 flag;
+  psm__u8  flag;
 };
 
 struct psm__part_src {
-  const char **id_runtime;
+  const char    **id_runtime;
   struct psm__id *id;
-  psm__i32 *binding_idx;
-  psm__i32 *keyform_off;
-  psm__i32 *key_len;
-  psm__i32 *visible;
-  psm__i32 *enable;
-  psm__i32 *parent_part_idx;
-  psm__i32 *offscreen_idx;
+  psm__i32       *binding_idx;
+  psm__i32       *keyform_off;
+  psm__i32       *key_len;
+  psm__i32       *visible;
+  psm__i32       *enable;
+  psm__i32       *parent_part_idx;
+  psm__i32       *offscreen_idx;
 };
 
 struct psm__deformer_src {
-  const char **id_runtime;
+  const char    **id_runtime;
   struct psm__id *id;
-  psm__i32 *binding_idx;
-  psm__i32 *visible;
-  psm__i32 *enable;
-  psm__i32 *parent_part_idx;
-  psm__i32 *parent_deformer_idx;
-  psm__i32 *type;
-  psm__i32 *local_idx;
+  psm__i32       *binding_idx;
+  psm__i32       *visible;
+  psm__i32       *enable;
+  psm__i32       *parent_part_idx;
+  psm__i32       *parent_deformer_idx;
+  psm__i32       *type;
+  psm__i32       *local_idx;
 };
 
 struct psm__warp_src {
@@ -133,55 +142,55 @@ struct psm__rotation_src {
 };
 
 struct psm__art_mesh_src {
-  const char **id_runtime;
+  const char     **id_runtime;
   const psm__f32 **uv_runtime;
   const psm__u16 **pos_idx_runtime;
   const psm__i32 **drawable_mask_runtime;
-  void *id;
-  psm__i32 *binding_idx;
-  psm__i32 *keyform_off;
-  psm__i32 *key_len;
-  psm__i32 *key_color_off;
-  psm__i32 *visible;
-  psm__i32 *enable;
-  psm__i32 *parent_part_idx;
-  psm__i32 *parent_deformer_idx;
-  psm__i32 *texture_no;
-  psm__u8 *drawable_flag;
-  psm__i32 *blend_mode;
-  psm__i32 *vertex_count;
-  psm__i32 *uv_off;
-  psm__i32 *idx_off;
-  psm__i32 *idx_len;
-  psm__i32 *mask_off;
-  psm__i32 *mask_len;
+  void            *id;
+  psm__i32        *binding_idx;
+  psm__i32        *keyform_off;
+  psm__i32        *key_len;
+  psm__i32        *key_color_off;
+  psm__i32        *visible;
+  psm__i32        *enable;
+  psm__i32        *parent_part_idx;
+  psm__i32        *parent_deformer_idx;
+  psm__i32        *texture_no;
+  psm__u8         *drawable_flag;
+  psm__i32        *blend_mode;
+  psm__i32        *vertex_count;
+  psm__i32        *uv_off;
+  psm__i32        *idx_off;
+  psm__i32        *idx_len;
+  psm__i32        *mask_off;
+  psm__i32        *mask_len;
 };
 
 struct psm__param_src {
-  const char **id_runtime;
+  const char    **id_runtime;
   struct psm__id *id;
-  psm__f32 *maximum_value;
-  psm__f32 *minimum_value;
-  psm__f32 *default_value;
-  psm__i32 *repeat;
-  psm__i32 *decimal_places;
-  psm__i32 *type;
-  psm__i32 *key_table_off;
-  psm__i32 *key_table_len;
-  psm__i32 *blend_key_table_off;
-  psm__i32 *blend_key_table_len;
+  psm__f32       *maximum_value;
+  psm__f32       *minimum_value;
+  psm__f32       *default_value;
+  psm__i32       *repeat;
+  psm__i32       *decimal_places;
+  psm__i32       *type;
+  psm__i32       *key_table_off;
+  psm__i32       *key_table_len;
+  psm__i32       *blend_key_table_off;
+  psm__i32       *blend_key_table_len;
 };
 
 struct psm__glue_src {
-  const char **id_runtime;
+  const char    **id_runtime;
   struct psm__id *id;
-  psm__i32 *binding_idx;
-  psm__i32 *keyform_off;
-  psm__i32 *key_len;
-  psm__i32 *art_mesh_idx_a;
-  psm__i32 *art_mesh_idx_b;
-  psm__i32 *info_off;
-  psm__i32 *info_len;
+  psm__i32       *binding_idx;
+  psm__i32       *keyform_off;
+  psm__i32       *key_len;
+  psm__i32       *art_mesh_idx_a;
+  psm__i32       *art_mesh_idx_b;
+  psm__i32       *info_off;
+  psm__i32       *info_len;
 };
 
 struct psm__part_key_src {
@@ -275,8 +284,8 @@ struct psm__glue_info_src {
 
 struct psm__param_keys_src {
   const psm__f32 **key_runtime;
-  psm__i32 *keys_off;
-  psm__i32 *keys_len;
+  psm__i32        *keys_off;
+  psm__i32        *keys_len;
 };
 
 struct psm__blend_key_table_src {
@@ -316,11 +325,11 @@ struct psm__blend_constraint_val_src {
 
 struct psm__offscreen_src {
   const psm__i32 **drawable_mask_runtime;
-  psm__i32 *owner_idx;
-  psm__u8 *drawable_flag;
-  psm__i32 *blend_mode;
-  psm__i32 *mask_off;
-  psm__i32 *mask_len;
+  psm__i32        *owner_idx;
+  psm__u8         *drawable_flag;
+  psm__i32        *blend_mode;
+  psm__i32        *mask_off;
+  psm__i32        *mask_len;
 };
 
 struct psm__key_color_src {
@@ -336,72 +345,72 @@ struct psm__offscreen_key_src {
 };
 
 struct psm__sections {
-  struct psm__moc3_data source;
-  struct psm__count_info *count_info;
+  struct psm__moc3_data    source;
+  struct psm__count_info  *count_info;
   struct psm__canvas_info *canvas_info;
 
-  struct psm__part_src part_src;
+  struct psm__part_src     part_src;
   struct psm__deformer_src deformer_src;
-  struct psm__warp_src warp_src;
+  struct psm__warp_src     warp_src;
   struct psm__rotation_src rotation_src;
   struct psm__art_mesh_src art_mesh_src;
 
-  struct psm__param_src param_src;
+  struct psm__param_src      param_src;
   struct psm__param_keys_src param_keys_src;
 
-  struct psm__part_key_src part_key_src;
-  struct psm__warp_key_src warp_key_src;
+  struct psm__part_key_src     part_key_src;
+  struct psm__warp_key_src     warp_key_src;
   struct psm__rotation_key_src rotation_key_src;
   struct psm__art_mesh_key_src art_mesh_key_src;
 
-  struct psm__key_pos_src key_pos_src;
-  struct psm__key_table_src key_table_src;
+  struct psm__key_pos_src       key_pos_src;
+  struct psm__key_table_src     key_table_src;
   struct psm__key_table_idx_src key_table_idx_src;
-  struct psm__binding_src binding_src;
+  struct psm__binding_src       binding_src;
 
-  struct psm__blend_key_table_src blend_key_table_src;
-  struct psm__blend_binding_src blend_binding_src;
-  struct psm__blend_src bs_part_src;
-  struct psm__blend_src bs_warp_src;
-  struct psm__blend_src bs_rotation_src;
-  struct psm__blend_src bs_art_mesh_src;
-  struct psm__blend_src bs_glue_src;
+  struct psm__blend_key_table_src      blend_key_table_src;
+  struct psm__blend_binding_src        blend_binding_src;
+  struct psm__blend_src                bs_part_src;
+  struct psm__blend_src                bs_warp_src;
+  struct psm__blend_src                bs_rotation_src;
+  struct psm__blend_src                bs_art_mesh_src;
+  struct psm__blend_src                bs_glue_src;
   struct psm__blend_constraint_idx_src blend_constraint_idx_src;
-  struct psm__blend_constraint_src blend_constraint_src;
+  struct psm__blend_constraint_src     blend_constraint_src;
   struct psm__blend_constraint_val_src blend_constraint_val_src;
 
-  struct psm__keys_src keys_src;
-  struct psm__uv_src uv_src;
+  struct psm__keys_src    keys_src;
+  struct psm__uv_src      uv_src;
   struct psm__pos_idx_src idx_src;
-  struct psm__mask_src mask_src;
+  struct psm__mask_src    mask_src;
 
-  struct psm__draw_group_src draw_group_src;
+  struct psm__draw_group_src     draw_group_src;
   struct psm__draw_group_obj_src draw_group_obj_src;
 
-  struct psm__glue_src glue_src;
+  struct psm__glue_src      glue_src;
   struct psm__glue_info_src glue_info_src;
-  struct psm__glue_key_src glue_key_src;
+  struct psm__glue_key_src  glue_key_src;
 
   struct psm__key_color_src keyform_mul_color_src;
   struct psm__key_color_src keyform_scr_color_src;
 
-  struct psm__offscreen_src offscreen_src;
+  struct psm__offscreen_src     offscreen_src;
   struct psm__offscreen_key_src offscreen_key_src;
-  struct psm__blend_src bs_offscreen_src;
+  struct psm__blend_src         bs_offscreen_src;
 };
 
 /* MOC3 v1-v5: 160 section offsets */
 struct psm__moc3_data_v52 {
   struct psm__moc3_header header;
-  psm__u32 offsets[160];
-  struct psm__sections sections;
+  psm__u32                offsets[160];
+  struct psm__sections    sections;
 };
 
 /* MOC3 v6+: 480 section offsets */
 struct psm__moc3_data_v53 {
   struct psm__moc3_header header;
-  psm__u32 offsets[480];
-  struct psm__sections sections;
+  psm__u32                offsets[480];
+  struct psm__sections    sections;
 };
 
 /*

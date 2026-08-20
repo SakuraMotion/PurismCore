@@ -15,24 +15,30 @@ extern "C" {
 /* PSM_COMPAT_VERSION is the version reported by csmGetVersion for
    compatibility and determines what public API functions are available. */
 #ifndef PSM_COMPAT_VERSION
-#define PSM_COMPAT_VERSION 0x06000001L
+#  define PSM_COMPAT_VERSION 0x06000001L
 #endif
 
 #if PSM_COMPAT_VERSION != 0x06000001L && PSM_COMPAT_VERSION != 0x05010000L
-# error Unsupported Cubism compatibility level
+#  error Unsupported Cubism compatibility level
 #endif
 
 /* PSM_TRUE_VERSION is the actual Purism Core implementation version. */
-#define PSM_TRUE_VERSION 0x01000001L
+#define PSM_TRUE_VERSION 0x01010000L
 
 /* CSM_CORE_WIN32_DLL is an alias for PURISM_CORE_DLL. */
 #ifdef CSM_CORE_WIN32_DLL
-# define PURISM_CORE_DLL
+#  define PURISM_CORE_DLL
 #endif
 
 /* PSMDEF specifies the linkage and attributes of public API functions. */
 #ifndef PSMDEF
-#  if defined(PURISM_CORE_STATIC)
+#  if defined(__EMSCRIPTEN__)
+#    include <emscripten.h>
+/* Mark every public function EMSCRIPTEN_KEEPALIVE so the wasm build exports the
+   whole API automatically -- the JS/WASM export surface then tracks exactly
+   what is compiled (so the v5/v6 difference needs no maintained list). */
+#    define PSMDEF EMSCRIPTEN_KEEPALIVE
+#  elif defined(PURISM_CORE_STATIC)
 #    define PSMDEF static
 #  elif defined(_WIN32) && defined(PURISM_CORE_DLL)
 #    define PSMDEF __declspec(dllexport) __stdcall
@@ -43,31 +49,31 @@ extern "C" {
 
 /* PSM_HAS_STDINT determines whether C99 <stdint.h> is available. */
 #ifdef PSM_HAS_STDINT
-# if PSM_HAS_STDINT
-#   if defined(PSM_STDINT_HEADER)
-#     include PSM_STDINT_HEADER
-#   else
-#     include <stdint.h>
-#   endif
-# endif
+#  if PSM_HAS_STDINT
+#    if defined(PSM_STDINT_HEADER)
+#      include PSM_STDINT_HEADER
+#    else
+#      include <stdint.h>
+#    endif
+#  endif
 #elif defined(__has_include)
-# if __has_include(<stdint.h>)
-#   include <stdint.h>
-#   define PSM_HAS_STDINT 1
-# endif
+#  if __has_include(<stdint.h>)
+#    include <stdint.h>
+#    define PSM_HAS_STDINT 1
+#  endif
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-# include <stdint.h>
-# define PSM_HAS_STDINT 1
+#  include <stdint.h>
+#  define PSM_HAS_STDINT 1
 #elif defined(_MSC_VER) && _MSC_VER >= 1600
-# include <stdint.h>
-# define PSM_HAS_STDINT 1
+#  include <stdint.h>
+#  define PSM_HAS_STDINT 1
 #elif defined(__cplusplus) && __cplusplus >= 201103L
-# include <cstdint>
-# define PSM_HAS_STDINT 1
+#  include <cstdint>
+#  define PSM_HAS_STDINT 1
 #endif
 
 #ifndef PSM_HAS_STDINT
-# define PSM_HAS_STDINT 0
+#  define PSM_HAS_STDINT 0
 #endif
 
 #if defined(PSM_HAS_STDINT) && PSM_HAS_STDINT
@@ -86,24 +92,24 @@ typedef signed int     psm__i32;
 typedef unsigned int   psm__u32;
 #endif
 
-typedef float psm__f32;
+typedef float    psm__f32;
 typedef psm__u32 psm_size;
 
 #ifndef psm__static_assert
-# if defined(PSM_HAS_STATIC_ASSERT) && PSM_HAS_STATIC_ASSERT
-#   define psm__static_assert(cond, msg) _Static_assert(cond, msg)
-# elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
-#   define psm__static_assert(cond, msg) _Static_assert(cond, msg)
-# elif defined(__cplusplus) && __cplusplus >= 201103L
-#   define psm__static_assert(cond, msg) static_assert(cond, msg)
-# else
-#   ifndef PSM__JOIN
-#     define PSM__JOIN_(a, b) a##b
-#     define PSM__JOIN(a, b)  PSM__JOIN_(a, b)
-#   endif
-#   define psm__static_assert(cond, msg) \
+#  if defined(PSM_HAS_STATIC_ASSERT) && PSM_HAS_STATIC_ASSERT
+#    define psm__static_assert(cond, msg) _Static_assert(cond, msg)
+#  elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#    define psm__static_assert(cond, msg) _Static_assert(cond, msg)
+#  elif defined(__cplusplus) && __cplusplus >= 201103L
+#    define psm__static_assert(cond, msg) static_assert(cond, msg)
+#  else
+#    ifndef PSM__JOIN
+#      define PSM__JOIN_(a, b) a##b
+#      define PSM__JOIN(a, b)  PSM__JOIN_(a, b)
+#    endif
+#    define psm__static_assert(cond, msg) \
       typedef char PSM__JOIN(psm__static_assertion_, __LINE__)[(cond) ? 1 : -1]
-# endif
+#  endif
 #endif
 
 /* csmMoc is an opaque handle to a revived MOC3 file. */
@@ -205,6 +211,18 @@ enum {
   csmMocVersion_53 = 6   /* 5.3.00+ */
 };
 
+/* Error codes returned by csmGetLastError. */
+typedef psm__i32 csmError;
+enum {
+  csmError_NoError = 0,
+  csmError_Failed = 1,
+  csmError_ParameterRange = 2,
+  csmError_FileUnrecognized = 3,
+  csmError_FileCorrupt = 4,
+  csmError_InvalidData = 5,
+  csmError_InvalidParameter = 6
+};
+
 /* csmParameterType distinguishes normal parameters from blend shape
    parameters. */
 typedef psm__i32 csmParameterType;
@@ -231,8 +249,13 @@ typedef void (*csmLogFunction)(const char *message);
 /*
  * Version and logging
  */
-PSMDEF csmVersion     csmGetVersion(void);
-PSMDEF csmVersion     csmGetTrueVersion(void);
+PSMDEF csmVersion csmGetVersion(void);
+PSMDEF csmVersion csmGetTrueVersion(void);
+/* Human-readable build identity, e.g. "1.0.1 (a1b2c3d)": the true version plus
+   the git revision the library was built from ("unknown" when built outside a
+   git checkout). For diagnostics / bug reports; the returned string is static
+   and must not be freed. */
+PSMDEF const char    *csmGetExtendedVersionString(void);
 PSMDEF csmMocVersion  csmGetLatestMocVersion(void);
 PSMDEF csmMocVersion  csmGetMocVersion(const void *, unsigned int);
 PSMDEF int            csmHasMocConsistency(void *, unsigned int);
@@ -256,10 +279,27 @@ PSMDEF void           csmSetLogLevel(int);
 PSMDEF csmMoc      *csmReviveMocInPlace(void *, unsigned int);
 PSMDEF unsigned int csmGetSizeofModel(const csmMoc *);
 PSMDEF csmModel    *csmInitializeModelInPlace(const csmMoc *,
-                        void *, unsigned int);
+       void *, unsigned int);
 PSMDEF void         csmUpdateModel(csmModel *);
 PSMDEF void         csmReadCanvasInfo(const csmModel *,
-                        csmVector2 *, csmVector2 *, float *);
+            csmVector2 *, csmVector2 *, float *);
+
+/*
+ * Error reporting (Purism Core extension; not present in Cubism Core).
+ * csmGetMocError returns the outcome of the most recent csmReviveMocInPlace
+ * or csmInitializeModelInPlace on this moc: csmError_NoError on success, or
+ * e.g. csmError_FileUnrecognized / csmError_FileCorrupt after a failed revive,
+ * or csmError_InvalidData when init was given too small a model buffer. Both
+ * calls return NULL on failure, so query with the same moc/buffer afterwards.
+ * A freshly initialized model inherits this code until its first update.
+ * csmGetLastError returns the error recorded by the model's most recent
+ * csmUpdateModel (cleared to csmError_NoError at the start of each update),
+ * e.g. csmError_ParameterRange when an input parameter was outside [min,max]
+ * and got clamped. csmGetErrorString maps a code to a static string.
+ */
+PSMDEF csmError    csmGetMocError(const csmMoc *);
+PSMDEF csmError    csmGetLastError(const csmModel *);
+PSMDEF const char *csmGetErrorString(csmError);
 
 /*
  * Parameters
@@ -267,17 +307,17 @@ PSMDEF void         csmReadCanvasInfo(const csmModel *,
  * csmGetParameterValues returns a writable array. Modify then call
  * csmUpdateModel. Values are clamped to [min, max] unless repeat is set.
  */
-PSMDEF int                      csmGetParameterCount(const csmModel *);
-PSMDEF const char             **csmGetParameterIds(const csmModel *);
-PSMDEF const csmParameterType  *csmGetParameterTypes(const csmModel *);
-PSMDEF const float             *csmGetParameterMinimumValues(const csmModel *);
-PSMDEF const float             *csmGetParameterMaximumValues(const csmModel *);
-PSMDEF const float             *csmGetParameterDefaultValues(const csmModel *);
-PSMDEF float                   *csmGetParameterValues(csmModel *);
-PSMDEF const int               *csmGetParameterKeyCounts(const csmModel *);
-PSMDEF const float            **csmGetParameterKeyValues(const csmModel *);
+PSMDEF int                     csmGetParameterCount(const csmModel *);
+PSMDEF const char            **csmGetParameterIds(const csmModel *);
+PSMDEF const csmParameterType *csmGetParameterTypes(const csmModel *);
+PSMDEF const float            *csmGetParameterMinimumValues(const csmModel *);
+PSMDEF const float            *csmGetParameterMaximumValues(const csmModel *);
+PSMDEF const float            *csmGetParameterDefaultValues(const csmModel *);
+PSMDEF float                  *csmGetParameterValues(csmModel *);
+PSMDEF const int              *csmGetParameterKeyCounts(const csmModel *);
+PSMDEF const float           **csmGetParameterKeyValues(const csmModel *);
 #if PSM_COMPAT_VERSION >= 0x06000000L
-PSMDEF const int               *csmGetParameterRepeats(const csmModel *);
+PSMDEF const int *csmGetParameterRepeats(const csmModel *);
 #endif
 
 /*
@@ -292,7 +332,7 @@ PSMDEF const char **csmGetPartIds(const csmModel *);
 PSMDEF float       *csmGetPartOpacities(csmModel *);
 PSMDEF const int   *csmGetPartParentPartIndices(const csmModel *);
 #if PSM_COMPAT_VERSION >= 0x06000000L
-PSMDEF const int   *csmGetPartOffscreenIndices(const csmModel *);
+PSMDEF const int *csmGetPartOffscreenIndices(const csmModel *);
 #endif
 
 /*
@@ -327,10 +367,10 @@ PSMDEF const csmVector4      *csmGetDrawableScreenColors(const csmModel *);
 PSMDEF const int             *csmGetDrawableParentPartIndices(const csmModel *);
 PSMDEF void                   csmResetDrawableDynamicFlags(csmModel *);
 #if PSM_COMPAT_VERSION >= 0x06000000L
-PSMDEF const int             *csmGetDrawableBlendModes(const csmModel *);
-PSMDEF const int             *csmGetRenderOrders(const csmModel *);
+PSMDEF const int *csmGetDrawableBlendModes(const csmModel *);
+PSMDEF const int *csmGetRenderOrders(const csmModel *);
 #else
-PSMDEF const int             *csmGetDrawableRenderOrders(const csmModel *);
+PSMDEF const int *csmGetDrawableRenderOrders(const csmModel *);
 #endif
 
 #if PSM_COMPAT_VERSION >= 0x06000000L
@@ -340,15 +380,15 @@ PSMDEF const int             *csmGetDrawableRenderOrders(const csmModel *);
  * Render-to-texture surfaces for advanced effects.
  * Owner index maps each offscreen to its parent part.
  */
-PSMDEF int                csmGetOffscreenCount(const csmModel *);
-PSMDEF const int         *csmGetOffscreenBlendModes(const csmModel *);
-PSMDEF const float       *csmGetOffscreenOpacities(const csmModel *);
-PSMDEF const int         *csmGetOffscreenOwnerIndices(const csmModel *);
-PSMDEF const csmVector4  *csmGetOffscreenMultiplyColors(const csmModel *);
-PSMDEF const csmVector4  *csmGetOffscreenScreenColors(const csmModel *);
-PSMDEF const int         *csmGetOffscreenMaskCounts(const csmModel *);
-PSMDEF const int        **csmGetOffscreenMasks(const csmModel *);
-PSMDEF const csmFlags    *csmGetOffscreenConstantFlags(const csmModel *);
+PSMDEF int               csmGetOffscreenCount(const csmModel *);
+PSMDEF const int        *csmGetOffscreenBlendModes(const csmModel *);
+PSMDEF const float      *csmGetOffscreenOpacities(const csmModel *);
+PSMDEF const int        *csmGetOffscreenOwnerIndices(const csmModel *);
+PSMDEF const csmVector4 *csmGetOffscreenMultiplyColors(const csmModel *);
+PSMDEF const csmVector4 *csmGetOffscreenScreenColors(const csmModel *);
+PSMDEF const int        *csmGetOffscreenMaskCounts(const csmModel *);
+PSMDEF const int       **csmGetOffscreenMasks(const csmModel *);
+PSMDEF const csmFlags   *csmGetOffscreenConstantFlags(const csmModel *);
 #endif
 
 #ifdef __cplusplus
