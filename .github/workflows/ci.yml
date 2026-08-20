@@ -123,8 +123,8 @@ jobs:
           mkdir -p build/raylib-web/
           curl -sL https://github.com/raysan5/raylib/archive/refs/tags/6.0.zip \
             -o build/raylib-6.0.zip
-          ( cd build && unzip raylib-6.0.zip && mv raylib-6.0 raylib-web )
-          make -C build/raylib-web/src PLATFORM=PLATFORM_WEB GRAPHICS=GRAPHICS_API_OPENGL_ES3 RAYLIB_BUILD_MODE=RELEASE
+          ( cd build && unzip -q raylib-6.0.zip && mv raylib-6.0 raylib-web )
+          ( cd build/raylib-web && make PLATFORM=PLATFORM_WEB GRAPHICS=GRAPHICS_API_OPENGL_ES3 RAYLIB_BUILD_MODE=RELEASE )
           echo "RAYLIB_WEB_DIR=$PWD/build/raylib-web/src" >> "$GITHUB_ENV"
 
       - name: Build for web

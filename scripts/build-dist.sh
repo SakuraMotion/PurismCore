@@ -325,5 +325,4 @@ rm -rf "$TMP"
 echo ""
 echo "=== Done ==="
 find "$DIST" -type f -not -path '*/obj/*' | sort | sed 's|^|  |'
-SDKINFO
 
