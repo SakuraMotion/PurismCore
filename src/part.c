@@ -61,8 +61,7 @@ psm__gather_parts(struct psm__model *m)
   struct psm__gather_channel ch[] = {
     { draw_order_src, m->parts.keydata.draw_order },
   };
-  psm__gather_scalars(count, bindings, keyform_off,
-      ms->count_info->part_keyforms, &m->parts.keydata.interp, ch, 1);
+  psm__gather_scalars(count, bindings, keyform_off, &m->parts.keydata.interp, ch, 1);
 }
 
 PSM__DEF void

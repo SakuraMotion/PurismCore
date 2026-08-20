@@ -38,7 +38,7 @@ psm__gather_glues(struct psm__model *m)
     { intensity_src, m->glues.keydata.intensity },
   };
   psm__gather_scalars(count, bindings, keyform_base_idx,
-      ms->count_info->glue_keyforms, &m->glues.keydata.interp, ch, 1);
+      &m->glues.keydata.interp, ch, 1);
 }
 
 PSM__DEF void

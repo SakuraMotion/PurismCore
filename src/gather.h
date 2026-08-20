@@ -31,15 +31,11 @@ psm__gather_scalars(
     psm__i32                          count,
     struct psm__binding *const       *bindings,
     const psm__i32                   *keyform_offset,
-    psm__i32                          max_keyforms,
     struct psm__interp               *interp,
     const struct psm__gather_channel *channels,
     psm__i32                          n_channels)
 {
   psm__i32 offset = 0;
-  /* keyform_idx[j]+keyform_offset[i] < keyform_off+product <= max_keyforms,
-   * proved at load (G1: product(key_counts) <= key_len). */
-  (void)max_keyforms;
   for (psm__i32 i = 0; i < count; i++) {
     struct psm__binding *b = bindings[i];
     if (!b)
@@ -75,17 +71,11 @@ psm__gather_positions(
     psm__i32                    count,
     struct psm__binding *const *bindings,
     const psm__i32             *keyform_offset,
-    psm__i32                    max_keyforms,
     const psm__f32             *pos_xy,
     const psm__i32             *pos_begin,
-    psm__i32                    max_pos,
     psm__f32                  **pos_dst)
 {
   psm__i32 offset = 0;
-  /* kfi < max_keyforms (G1) and pos_begin[kfi] in [0,max_pos) (F2), both
-   * proved at load. */
-  (void)max_keyforms;
-  (void)max_pos;
   for (psm__i32 i = 0; i < count; i++) {
     struct psm__binding *b = bindings[i];
     if (!b)
@@ -110,16 +100,12 @@ psm__gather_colors(
     psm__i32                         count,
     struct psm__binding *const      *bindings,
     const psm__i32                  *key_color_offset,
-    psm__i32                         max_kf_colors,
     const struct psm__key_color_src *mul_src,
     const struct psm__key_color_src *scr_src,
     struct psm__color3              *mul_dst,
     struct psm__color3              *scr_dst)
 {
   psm__i32 offset = 0;
-  /* kfi = keyform_idx[j]+key_color_offset[i] < key_color_off+product
-   * <= max_kf_colors, proved at load (G1). */
-  (void)max_kf_colors;
   for (psm__i32 i = 0; i < count; i++) {
     struct psm__binding *b = bindings[i];
     if (!b) continue;
@@ -150,14 +136,11 @@ psm__gather_reflect(
     psm__i32                    count,
     struct psm__binding *const *bindings,
     const psm__i32             *keyform_offset,
-    psm__i32                    max_keyforms,
     const psm__i32             *rfx_src,
     const psm__i32             *rfy_src,
     psm__i32                   *rfx_dst,
     psm__i32                   *rfy_dst)
 {
-  /* kfi < max_keyforms proved at load (G1). */
-  (void)max_keyforms;
   for (psm__i32 i = 0; i < count; i++) {
     struct psm__binding *b = bindings[i];
     if (!b || !b->idx_dirty || b->blend_count <= 0)
