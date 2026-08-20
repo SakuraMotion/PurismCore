@@ -29,7 +29,7 @@
 #     bin/macos/x86_64/viewer  + libraylib.dylib  (rpath @loader_path)
 #     bin/macos/arm64/viewer   + libraylib.dylib
 #     bin/macos/universal/Viewer.app/  (lipo'd; Contents/{Info.plist,MacOS/})
-#     bin/windows/x86_64/viewer.exe    (static raylib -- self-contained)
+#     bin/windows/x86_64/viewer.exe    (static raylib; self-contained)
 #     bin/windows/x86/viewer.exe
 #     bundle/PurismCoreBundle.h
 #
@@ -49,7 +49,6 @@
 #   RAYLIB_DIR_MACOS         -> zig-cross-macos-x86_64 AND zig-cross-macos-arm64 (universal raylib)
 #   RAYLIB_DIR_WINDOWS_AMD64 -> zig-cross-windows-x86_64
 #   RAYLIB_DIR_WINDOWS_X86   -> zig-cross-windows-x86
-#   (zig-cross-windows-arm64 viewer: no raylib v6.0 mingw archive ships for it -- skip.)
 
 set -e
 cd "$(dirname "$0")/.."
@@ -317,7 +316,7 @@ mkdir -p "$DIST/bundle"
 
 # Documentation
 echo "=== Docs ==="
-for f in LICENSE README.md docs/*.md docs/*.txt; do
+for f in LICENSE README.md docs/*.md docs/SDKINFO.txt; do
   [ -f "$f" ] && cp "$f" "$DIST/"
 done
 
@@ -326,3 +325,5 @@ rm -rf "$TMP"
 echo ""
 echo "=== Done ==="
 find "$DIST" -type f -not -path '*/obj/*' | sort | sed 's|^|  |'
+SDKINFO
+

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Purism Core: sample model viewer Emscripten shell.
+  Purism Core: sample model viewer Emscripten shell
 
   Copyright (c) 2026 Sakura Motion Project
   SPDX-License-Identifier: MIT
@@ -30,7 +30,7 @@
 <div id="bar">
   <b>Purism Core viewer</b>
   <button id="load">Load model</button>
-  <span class="hint">a .model3.json + its textures + .moc3, or a .zip,
+  <span class="hint">a .model3.json + its textures + .moc3, or a .zip;
     or you can drop files on the canvas</span>
   <span id="status"></span>
 </div>
@@ -158,7 +158,7 @@ document.getElementById("file").addEventListener("change", (e) => {
   e.target.value = "";   // allow re-selecting the same files
 });
 
-setStatus("loading runtime…");
+setStatus("loading runtime...");
 Module.onRuntimeInitialized = () => {
   setStatus("");
   // ?model=<zip-url> auto-loads a model from a (possibly cross-origin) .zip.

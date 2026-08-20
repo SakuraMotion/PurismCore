@@ -114,31 +114,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Pinned to the emsdk version raylib 6.0's own web build used, so the
-      # archived libraylib.web.a stays ABI-compatible with this emcc.
       - uses: emscripten-core/setup-emsdk@v15
         with:
           version: 5.0.3
 
-      - name: Fetch raylib v6.0 (webassembly)
+      - name: Fetch and build raylib v6.0 (webassembly)
         run: |
-          mkdir -p build/raylib
-          curl -sL https://github.com/raysan5/raylib/releases/download/6.0/raylib-6.0_webassembly.zip \
-            -o build/raylib/raylib-6.0_webassembly.zip
-          ( cd build/raylib && unzip -q raylib-6.0_webassembly.zip )
-          echo "RAYLIB_WEB_DIR=$PWD/build/raylib/raylib-6.0_webassembly/include" >> "$GITHUB_ENV"
-          echo "RAYLIB_WEB_LIB=$PWD/build/raylib/raylib-6.0_webassembly/lib/libraylib.web.a" >> "$GITHUB_ENV"
+          mkdir -p build/raylib-web/
+          curl -sL https://github.com/raysan5/raylib/archive/refs/tags/6.0.zip \
+            -o build/raylib-6.0.zip
+          ( cd build; unzip raylib-6.0.zip; mv raylib-6.0 raylib-web )
+          make -C build/raylib-web/src PLATFORM=PLATFORM_WEB GRAPHICS=GRAPHICS_API_OPENGL_ES3 RAYLIB_BUILD_MODE=RELEASE
+          echo "RAYLIB_WEB_DIR=$PWD/build/raylib-web/src" >> "$GITHUB_ENV"
 
-      - name: Build web viewer (Emscripten)
-        run: make viewer-web
+      - name: Build for web
+        run: ./scripts/build-dist-web.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: wasm
-          path: |
-            dist/Live2DCubismCore*.js
-            dist/viewer.*
+          path: dist/sdk-web/
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -172,6 +168,10 @@ jobs:
         with:
           version: 0.16.0
 
+      - uses: emscripten-core/setup-emsdk@v15
+        with:
+          version: 5.0.3
+
       - name: Install lipo (Linux)
         run: |
           curl -sL https://github.com/konoui/lipo/releases/download/v0.9.4/lipo_linux_amd64 \
@@ -202,8 +202,20 @@ jobs:
           fetch raylib-6.0_win64_mingw-w64.zip   raylib-6.0_win64_mingw-w64 zip    RAYLIB_DIR_WINDOWS_AMD64
           fetch raylib-6.0_win32_mingw-w64.zip   raylib-6.0_win32_mingw-w64 zip    RAYLIB_DIR_WINDOWS_X86
 
+      - name: Fetch and build raylib v6.0 (webassembly)
+        run: |
+          mkdir -p build/raylib-web/
+          curl -sL https://github.com/raysan5/raylib/archive/refs/tags/6.0.zip \
+            -o build/raylib-6.0.zip
+          ( cd build; unzip raylib-6.0.zip; mv raylib-6.0 raylib-web )
+          make -C build/raylib-web/src PLATFORM=PLATFORM_WEB GRAPHICS=GRAPHICS_API_OPENGL_ES3 RAYLIB_BUILD_MODE=RELEASE
+          echo "RAYLIB_WEB_DIR=$PWD/build/raylib-web/src" >> "$GITHUB_ENV"
+
       - name: Build distribution
         run: ./scripts/build-dist.sh
+
+      - name: Build distribution for web
+        run: ./scripts/build-dist-web.sh
 
       - name: Generate bundle
         run: make bundle
@@ -214,6 +226,8 @@ jobs:
           mv dist/sdk "dist/PurismCore-${tag}"
           cp dist/PurismCoreBundle.h "dist/PurismCoreBundle-${tag}.h"
           cd dist && zip -r "PurismCore-${tag}.zip" "PurismCore-${tag}"
+          mv dist/sdk-web "dist/PurismCore-${tag}-Web"
+          cd dist && zip -r "PurismCore-${tag}-Web.zip" "PurismCore-${tag}-Web"
 
       - name: Create release
         uses: softprops/action-gh-release@v2

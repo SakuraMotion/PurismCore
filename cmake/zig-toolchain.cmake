@@ -33,7 +33,7 @@ execute_process(COMMAND chmod +x
 set(CMAKE_C_COMPILER   "${_zig_tool_dir}/zig-cc")
 set(CMAKE_CXX_COMPILER "${_zig_tool_dir}/zig-cxx")
 set(CMAKE_AR           "${_zig_tool_dir}/zig-ar")
-set(CMAKE_RANLIB        "${_zig_tool_dir}/zig-ranlib")
+set(CMAKE_RANLIB       "${_zig_tool_dir}/zig-ranlib")
 
 # Windows resource compiler. zig ships `zig rc` (LLVM-rc).
 file(WRITE "${_zig_tool_dir}/zig-rc"

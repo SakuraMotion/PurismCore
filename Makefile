@@ -64,7 +64,7 @@ LIB_A      = build/libPurismCore$(ABI_SUFFIX)$(LIBSUF)
 LIB_SHARED = build/$(DLLPRE)PurismCore$(ABI_SUFFIX)$(DLLSUF)
 
 ifeq ($(OS),wasm)
-all: dist/Live2DCubismCore$(ABI_SUFFIX).js
+all: web-lib
 else
 all: static-lib shared-lib
 endif
@@ -121,8 +121,8 @@ else
 endif
 
 VIEWER_SRC = src/samples/viewer/io.c src/samples/viewer/blend.c \
-    src/samples/viewer/graphics.c src/samples/viewer/render.c \
-    src/samples/viewer/panel.c src/samples/viewer/viewer.c
+             src/samples/viewer/graphics.c src/samples/viewer/render.c \
+             src/samples/viewer/panel.c src/samples/viewer/viewer.c
 
 viewer: build/viewer$(ABI_SUFFIX)$(EXESUF)
 build/viewer$(ABI_SUFFIX)$(EXESUF): $(VIEWER_SRC) src/samples/viewer/viewer.h \
@@ -132,13 +132,13 @@ build/viewer$(ABI_SUFFIX)$(EXESUF): $(VIEWER_SRC) src/samples/viewer/viewer.h \
 	    $(VIEWER_SRC) -o $@ $(LIB_A) $(RAYLIB_LIBS)
 
 EMCC           ?= emcc
-RAYLIB_WEB_DIR ?= $(HOME)/raylib/src
+RAYLIB_WEB_DIR ?= third_party/local/raylib/src
 RAYLIB_WEB_LIB ?= $(RAYLIB_WEB_DIR)/libraylib.web.a
 
-viewer-web: dist/viewer.html
-dist/viewer.html: $(VIEWER_SRC) src/samples/viewer/viewer.h \
+viewer-web: build/viewer.html
+build/viewer.html: $(VIEWER_SRC) src/samples/viewer/viewer.h \
     src/samples/viewer/shell.html $(VIEWER_EMBEDS) \
-    src/samples/vendor/raygui.h $(SRC) $(HDR) | dist
+    src/samples/vendor/raygui.h $(SRC) $(HDR) | build
 	$(EMCC) -O2 -std=gnu11 $(ABI_CPPFLAGS) \
 	    -I./include -I./src -I./src/samples/viewer -Ibuild -I$(RAYLIB_WEB_DIR) \
 	    -Wall -Wno-unused-function \
@@ -153,8 +153,9 @@ WASM_SRC        = $(SRC) src/core_js.c
 WASM_RT_METHODS := ccall,cwrap,addFunction,removeFunction,UTF8ToString
 WASM_RT_METHODS := $(WASM_RT_METHODS),HEAP8,HEAPU8,HEAPU16,HEAP32,HEAPU32,HEAPF32
 
-dist/Live2DCubismCore$(ABI_SUFFIX).js: $(WASM_SRC) src/core_js.js src/core_js_tail.js \
-    scripts/assemble-core-js.sh $(HDR) | dist build/wasm
+web-lib: build/purismcore$(ABI_SUFFIX).js
+build/purismcore$(ABI_SUFFIX).js: $(WASM_SRC) src/core_js.js src/core_js_tail.js \
+    scripts/assemble-core-js.sh $(HDR) | build build/wasm
 	$(EMCC) $(ABI_CPPFLAGS) -O3 -DPSM_GIT_HASH='"$(GIT_HASH)"' \
 	    -I./include -I./src $(WASM_SRC) \
 	    -o build/wasm/em-module$(ABI_SUFFIX).js \

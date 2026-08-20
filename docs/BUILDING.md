@@ -181,6 +181,12 @@ The raylib model viewer (`src/samples/viewer/`) builds three ways:
 - **Web:** `make viewer-web` (Emscripten; needs a WebGL2/GLES3 raylib build).
   The shell page accepts `?model=<zip-url>`.
 
+> [!IMPORTANT]
+> The model viewer requires WebGL 2, and the prebuilt Raylib 6.0 for WASM
+> only supports WebGL 1. You'll need to build specifically for WebGL 2/GLES3:
+>
+> `cd raylib && make PLATFORM=PLATFORM_WEB GRAPHICS=GRAPHICS_API_OPENGL_ES3 RAYLIB_BUILD_MODE=RELEASE`
+
 ## Web (Emscripten/WASM)
 
 The Emscripten build is the most compatible way of using Purism Core in

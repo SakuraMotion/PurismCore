@@ -25,7 +25,7 @@ From scripts/build-dist.sh:
 #     bin/macos/x86_64/viewer  + libraylib.dylib  (rpath @loader_path)
 #     bin/macos/arm64/viewer   + libraylib.dylib
 #     bin/macos/universal/Viewer.app/  (lipo'd; Contents/{Info.plist,MacOS/})
-#     bin/windows/x86_64/viewer.exe    (static raylib -- self-contained)
+#     bin/windows/x86_64/viewer.exe    (static raylib; self-contained)
 #     bin/windows/x86/viewer.exe
 #     bundle/PurismCoreBundle.h
 #
