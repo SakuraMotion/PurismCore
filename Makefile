@@ -139,7 +139,7 @@ viewer-web: build/viewer.html
 build/viewer.html: $(VIEWER_SRC) src/samples/viewer/viewer.h \
     src/samples/viewer/shell.html $(VIEWER_EMBEDS) \
     src/samples/vendor/raygui.h $(SRC) $(HDR) | build
-	$(EMCC) -O2 -std=gnu11 $(ABI_CPPFLAGS) \
+	$(EMCC) -O2 -DPSM_GIT_HASH='"$(GIT_HASH)"' -std=gnu11 $(ABI_CPPFLAGS) \
 	    -I./include -I./src -I./src/samples/viewer -Ibuild -I$(RAYLIB_WEB_DIR) \
 	    -Wall -Wno-unused-function \
 	    $(SRC) $(VIEWER_SRC) $(RAYLIB_WEB_LIB) -o $@ \

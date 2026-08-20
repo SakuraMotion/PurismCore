@@ -1,5 +1,5 @@
 /*
- * Purism Core: Live2DCubismCore.js bootstrap tail (clean-room)
+ * Purism Core: Live2DCubismCore.js bootstrap tail
  *
  * Copyright (c) 2026 Sakura Motion Project
  * SPDX-License-Identifier: MIT

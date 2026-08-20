@@ -157,6 +157,7 @@ typedef struct
     int frame;
     double benchT0;
     bool quit; /* frame() sets this to stop the loop */
+    const char *coreVerStr;
 } App;
 
 static bool ViewerLoad(App *a, const char *path)
@@ -319,7 +320,9 @@ static void frame(App *a)
     DrawTextEx(a->uiFont,
                "Tab: panel   M: masking   R: reset view   "
                "wheel: zoom   LMB drag: pan   drop a model to load it",
-               (Vector2){ 10, a->view.sh - 26 }, 18, 1, RAYWHITE);
+               (Vector2){ 10, a->view.sh - 30 }, 18, 1, RAYWHITE);
+    DrawTextEx(a->uiFont, a->coreVerStr,
+               (Vector2){ 10, a->view.sh - 56 }, 18, 1, RAYWHITE);
     char fps[32];
     snprintf(fps, sizeof(fps), "%d FPS", GetFPS());
     DrawTextEx(a->uiFont, fps, (Vector2){ 10, 8 }, 20, 1, (Color){ 0, 228, 48, 255 });
@@ -365,6 +368,8 @@ int main(int argc, char **argv)
 
     csmSetLogFunction(NULL);
     SetTraceLogLevel(LOG_WARNING); /* quiet raylib's per-file INFO chatter */
+
+    app.coreVerStr = csmGetExtendedVersionString();
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | (app.opt.noVsync ? 0 : FLAG_VSYNC_HINT));
     InitWindow(1280, 720, "Purism Core viewer");
