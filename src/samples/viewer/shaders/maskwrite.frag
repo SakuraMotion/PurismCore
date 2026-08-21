@@ -1,4 +1,4 @@
-// Purism Core viewer: write alpha coverage of a drawable (mask) to an RGBA channel
+// Purism Core: sample model viewer shader to write alpha coverage of a mask to an RGBA channel
 //
 // Copyright (c) 2026 Sakura Motion Project
 // SPDX-License-Identifier: MIT

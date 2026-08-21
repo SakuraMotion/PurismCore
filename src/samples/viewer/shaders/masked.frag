@@ -1,4 +1,4 @@
-// Purism Core viewer: drawable shader (with a clipping mask)
+// Purism Core: sample model viewer drawable shader (with a clipping mask)
 //
 // Copyright (c) 2026 Sakura Motion Project
 // SPDX-License-Identifier: MIT

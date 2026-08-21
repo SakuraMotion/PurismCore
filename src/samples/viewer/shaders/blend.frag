@@ -1,4 +1,4 @@
-// Purism Core viewer: compositing shader for "unusual" (Photoshop-style) blend modes
+// Purism Core: sample model viewer compositing shader for "exotic" blend modes
 //
 // Copyright (c) 2026 Sakura Motion Project
 // SPDX-License-Identifier: MIT

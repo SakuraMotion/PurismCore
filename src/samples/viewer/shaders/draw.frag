@@ -1,4 +1,4 @@
-// Purism Core viewer: drawable shader
+// Purism Core: sample model viewer drawable shader
 //
 // Copyright (c) 2026 Sakura Motion Project
 // SPDX-License-Identifier MIT

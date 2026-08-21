@@ -1,4 +1,4 @@
-// Purism Core viewer: offscreen group compositing with masking
+// Purism Core: sample model viewer shader for offscreen group compositing with masking
 //
 // Copyright (c) 2026 Sakura Motion Project
 // SPDX-License-Identifier: MIT
