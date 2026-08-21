@@ -378,18 +378,12 @@ done_nonnull:
     psm__i32 sidx = src->deformer_src.local_idx[i];
     switch (dtype) {
     case PSM__DEFORMER_TYPE_WARP:
-      if (sidx < 0 || sidx >= cnt->warps) {
-        PSM__LOGF("deformer[%d].specific=%d (warp max=%d)",
-            i, sidx, cnt->warps);
-        return PSM__ERR_FILE_CORRUPT;
-      }
+      PSM__FAIL(sidx < 0 || sidx >= cnt->warps, PSM__ERR_FILE_CORRUPT,
+          "deformer[%d].specific=%d (warp max=%d)", i, sidx, cnt->warps);
       break;
     case PSM__DEFORMER_TYPE_ROTATION:
-      if (sidx < 0 || sidx >= cnt->rotations) {
-        PSM__LOGF("deformer[%d].specific=%d (rot max=%d)",
-            i, sidx, cnt->rotations);
-        return PSM__ERR_FILE_CORRUPT;
-      }
+      PSM__FAIL(sidx < 0 || sidx >= cnt->rotations, PSM__ERR_FILE_CORRUPT,
+          "deformer[%d].specific=%d (rot max=%d)", i, sidx, cnt->rotations);
       break;
     default:
       PSM__LOGF("deformer[%d].type=%d invalid", i, dtype);
@@ -554,7 +548,6 @@ done_nonnull:
     psm__model_check_index(src->glue_src.art_mesh_idx_b, i, cnt->art_meshes);
     psm__model_check_range(src->glue_src.info_off,
         src->glue_src.info_len, i, cnt->glue_info);
-    /* F5: glue info is consumed in (mesh0, mesh1) pairs -> must be even. */
     PSM__FAIL((src->glue_src.info_len[i] & 1) != 0, PSM__ERR_FILE_CORRUPT,
         "glue[%d]: odd info_len %d", i, src->glue_src.info_len[i]);
   }
