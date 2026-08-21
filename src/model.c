@@ -64,11 +64,6 @@ psm__binding_param_count(const struct psm__sections *src,
       0, PSM__MAX_KEY_TABLES);
 }
 
-/*
- * Overflow-checked accumulation for workspace size totals.
- * On overflow, marks the arena bad (so psm__arena_ok fails and the
- * model is rejected at load) and returns the accumulator unchanged.
- */
 static inline psm__u32
 psm__acc_add(struct psm__arena *a, psm__u32 acc, psm__u32 add)
 {
@@ -80,11 +75,6 @@ psm__acc_add(struct psm__arena *a, psm__u32 acc, psm__u32 add)
   return r;
 }
 
-/*
- * 16-byte-aligned byte size of a vc-vertex position buffer (2 floats
- * per vertex), with overflow detection before the u32 truncation that
- * psm__align_to_16 would otherwise hide. Caller guarantees vc >= 0.
- */
 static inline psm__u32
 psm__pos_bytes(struct psm__arena *a, psm__i32 vc)
 {
@@ -836,14 +826,7 @@ psm__init_model_data(struct psm__model *m, const struct psm__moc3_data *moc)
         psm__i32 raw = ms->art_mesh_src.blend_mode[i];
         m->art_meshes.blend_mode[i] = psm__remap_blend_mode(raw);
 #if PSM_COMPAT_VERSION < 0x06000000L
-        /*
-         * v5 callers read blend mode from constant flags
-         * (csmGetDrawableBlendModes doesn't exist in v5).
-         * Only the original compatible modes (raw 1=AddCompatible,
-         * 2=MultiplyCompatible) set a flag bit; v5.3 extended modes (raw >= 3)
-         * leave both bits unset, matching the v6 oracle -- keying off the
-         * remapped value here wrongly flagged every extended mode.
-         */
+        /* v5 callers read blend mode from constant flags */
         psm__u8 *cf = &m->art_meshes.const_flags[i];
         *cf &= ~(csmBlendAdditive | csmBlendMultiplicative);
         if (raw == csmColorBlendType_AddCompatible)

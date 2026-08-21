@@ -219,7 +219,7 @@ void DrawPanel(csmModel *m, Rectangle area, PanelState *ps)
     if (GuiButton((Rectangle){ x + w - btn, y, btn, lh }, "+")) ps->uiScale = s < 2.15f ? s + 0.1f : 2.2f;
     y += lh + gap;
 
-    /* tab switch (toggle group, not a tab bar -- no spurious close buttons) */
+    /* tab switch (toggle group, not a tab bar) */
     int prev = ps->tab;
     GuiToggleGroup((Rectangle){ x, y, (w - gap) / 2, lh }, "Parameters;Parts", &ps->tab);
     if (ps->tab != prev) ps->editId = -1; /* drop edit focus when switching tabs */

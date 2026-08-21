@@ -127,7 +127,7 @@ build_be(const uint8_t *raw, size_t n)
   if (64 + sec_count * 4 <= n)
     ind_swap32(synth + 64, sec_count);
 
-  /* count_info: 32 ints (<v5.0) or 64 ints (>=v5.0) -- independent sizing */
+  /* count_info: 32 ints (<v5.0) or 64 ints (>=v5.0) */
   {
     size_t ci_off = (size_t)((const uint8_t *)cnt - mapb);
     size_t ci_ints = (ver >= csmMocVersion_50) ? 64 : 32;

@@ -551,10 +551,6 @@ var PurismCore;
         _csm.getDrawableScreenColors(modelPtr), length * 4);
       this.parentPartIndices = new Int32Array(_em.HEAP32.buffer,
         _csm.getDrawableParentPartIndices(modelPtr), length);
-      /* blendModes is a v6-only field: one packed int per drawable, color
-       blend in the low byte and alpha blend in the next (color | alpha<<8) --
-       the layout the C ABI returns and that consumers read as
-       blendModes[i] & 0xff / (blendModes[i] >> 8) & 0xff. A direct heap view. */
       if (_v6) {
         this.blendModes = new Int32Array(_em.HEAP32.buffer,
           _csm.getDrawableBlendModes(modelPtr), length);
