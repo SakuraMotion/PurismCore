@@ -166,11 +166,13 @@ psm__update_flags(struct psm__model *m)
 PSM__DEF void
 psm__update_model(struct psm__model *m)
 {
-  m->last_error = PSM__OK;
+  int r = PSM__OK;
+
+  m->last_error = r;
   psm__save_flags(m);
 
-  if (psm__resolve_params(&m->params))
-    m->last_error = PSM__ERR_PARAMETER_RANGE_ERROR;
+  if ((r = psm__resolve_params(&m->params)) != PSM__OK)
+    m->last_error = r;
   psm__resolve_key_tables(m);
   psm__resolve_blend_key_tables(m);
   psm__resolve_bindings(m);

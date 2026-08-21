@@ -97,7 +97,7 @@ psm__find_key_segment(psm__f32 value, const psm__f32 *keys, psm__i32 key_count,
   return r;
 }
 
-PSM__DEF bool
+PSM__DEF int
 psm__resolve_params(struct psm__params *parameters)
 {
   psm__i32 count = parameters->count;
@@ -107,7 +107,7 @@ psm__resolve_params(struct psm__params *parameters)
   struct psm__param *params = parameters->items;
 
   psm__f32 *input_value = parameters->input_value;
-  bool      range_error = false;
+  int       r = PSM__OK;
 
   for (psm__i32 i = 0; i < count; i++) {
     psm__f32 user_value = input_value[i];
@@ -130,7 +130,7 @@ psm__resolve_params(struct psm__params *parameters)
     } else {
       psm__f32 range_min = params[i].range[0], range_max = params[i].range[1];
       if (user_value < range_min || user_value > range_max)
-        range_error = true;
+        r = PSM__ERR_PARAMETER_RANGE_ERROR;
       new_value = psm__clamp_f32(user_value, range_min, range_max);
 
       if (params[i].value != new_value) {
@@ -144,7 +144,7 @@ psm__resolve_params(struct psm__params *parameters)
     }
   }
 
-  return range_error;
+  return r;
 }
 
 PSM__DEF void
