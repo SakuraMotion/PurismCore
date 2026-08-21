@@ -246,8 +246,8 @@ typedef void (*csmLogFunction)(const char *message);
 /*
  * Version and logging
  */
-PSMDEF csmVersion csmGetVersion(void);
-PSMDEF csmVersion csmGetTrueVersion(void);
+PSMDEF csmVersion     csmGetVersion(void);
+PSMDEF csmVersion     csmGetTrueVersion(void);
 PSMDEF const char    *csmGetExtendedVersionString(void);
 PSMDEF csmMocVersion  csmGetLatestMocVersion(void);
 PSMDEF csmMocVersion  csmGetMocVersion(const void *, unsigned int);
@@ -278,10 +278,10 @@ PSMDEF void         csmReadCanvasInfo(const csmModel *,
             csmVector2 *, csmVector2 *, float *);
 
 /*
- * Error reporting.
+ * Error reporting
  *
- * csmGetMocError returns the outcome of the most recent csmReviveMocInPlace
- * or csmInitializeModelInPlace on the MOC.
+ * csmGetMocError and csmGetLastError return the outcome of the most recent
+ * csmReviveMocInPlace or csmInitializeModelInPlace on the MOC.
  */
 PSMDEF csmError    csmGetMocError(const csmMoc *);
 PSMDEF csmError    csmGetLastError(const csmModel *);
