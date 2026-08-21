@@ -18,15 +18,15 @@
 struct psm__key_search_result {
   psm__i32 index;   /* Key index (lower bound of segment) */
   psm__f32 weight;  /* Interpolation weight within segment [0,1] */
-  bool is_outside;  /* Value is outside key range */
-  bool needs_check; /* Need to check previous out_of_range state */
+  bool     is_outside;  /* Value is outside key range */
+  bool     needs_check; /* Need to check previous out_of_range state */
 };
 
 static struct psm__key_search_result
 psm__find_key_segment(psm__f32 value, const psm__f32 *keys, psm__i32 key_count,
-                      psm__f32 snap_eps, psm__f32 interp_epsilon)
+    psm__f32 snap_eps, psm__f32 interp_eps)
 {
-  struct psm__key_search_result r = {0, 0.0f, false, false};
+  struct psm__key_search_result r = { 0, 0.0f, false, false };
 
   if (key_count <= 0) {
     r.needs_check = true;
@@ -60,7 +60,7 @@ psm__find_key_segment(psm__f32 value, const psm__f32 *keys, psm__i32 key_count,
   if (value < key1 - snap_eps) {
     /* Between first and second key */
     psm__f32 key_diff = key1 - key0;
-    if (key_diff >= interp_epsilon)
+    if (key_diff >= interp_eps)
       r.weight = (value - key0) / key_diff;
     return r;
   }
@@ -79,7 +79,7 @@ psm__find_key_segment(psm__f32 value, const psm__f32 *keys, psm__i32 key_count,
       /* Between key0 and key1 */
       r.index = k - 1;
       psm__f32 key_diff = key1 - key0;
-      if (key_diff >= interp_epsilon)
+      if (key_diff >= interp_eps)
         r.weight = (value - key0) / key_diff;
       return r;
     }
@@ -97,15 +97,17 @@ psm__find_key_segment(psm__f32 value, const psm__f32 *keys, psm__i32 key_count,
   return r;
 }
 
-PSM__DEF void
+PSM__DEF int
 psm__resolve_params(struct psm__params *parameters)
 {
   psm__i32 count = parameters->count;
   if (count <= 0)
-    return;
+    return false;
 
   struct psm__param *params = parameters->items;
+
   psm__f32 *input_value = parameters->input_value;
+  int       r = PSM__OK;
 
   for (psm__i32 i = 0; i < count; i++) {
     psm__f32 user_value = input_value[i];
@@ -127,6 +129,8 @@ psm__resolve_params(struct psm__params *parameters)
       }
     } else {
       psm__f32 range_min = params[i].range[0], range_max = params[i].range[1];
+      if (user_value < range_min || user_value > range_max)
+        r = PSM__ERR_PARAMETER_RANGE_ERROR;
       new_value = psm__clamp_f32(user_value, range_min, range_max);
 
       if (params[i].value != new_value) {
@@ -139,12 +143,14 @@ psm__resolve_params(struct psm__params *parameters)
       input_value[i] = new_value;
     }
   }
+
+  return r;
 }
 
 PSM__DEF void
 psm__resolve_key_tables(struct psm__model *m)
 {
-  psm__i32 param_count = m->params.count;
+  psm__i32           param_count = m->params.count;
   struct psm__param *param_items = m->params.items;
   if (!param_items || param_count <= 0)
     return;
@@ -160,6 +166,7 @@ psm__resolve_key_tables(struct psm__model *m)
        * so downstream keyform updates don't re-evaluate them.
        */
       psm__i32 bc = param->key_table_len;
+
       struct psm__key_table *bs = param->key_tables;
       if (bs) {
         for (psm__i32 j = 0; j < bc; j++) {
@@ -171,6 +178,7 @@ psm__resolve_key_tables(struct psm__model *m)
     }
 
     psm__i32 binding_count = param->key_table_len;
+
     struct psm__key_table *bindings = param->key_tables;
     if (!bindings || binding_count <= 0)
       continue;
@@ -232,7 +240,8 @@ psm__resolve_blend_key_tables(struct psm__model *m)
     if (bs_count <= 0)
       continue;
 
-    struct psm__blend_key_table *blend_key_tables = params[param_i].blend_key_tables;
+    struct psm__blend_key_table *blend_key_tables =
+        params[param_i].blend_key_tables;
     if (!blend_key_tables)
       continue;
     psm__f32 value = params[param_i].value;
@@ -248,7 +257,8 @@ psm__resolve_blend_key_tables(struct psm__model *m)
           if (keys && value > keys[0]) {
             /* Find upper bound: first key > value */
             for (index = 1;
-                index < (psm__u32)key_count && value >= keys[index]; index++) {}
+                index < (psm__u32)key_count && value >= keys[index]; index++) {
+            }
             index--;
             if (index < (psm__u32)key_count - 1)
               weight = (value - keys[index]) / (keys[index + 1] - keys[index]);
@@ -257,11 +267,11 @@ psm__resolve_blend_key_tables(struct psm__model *m)
 
         psm__u32 old_index = blend_key_tables[bs_i].idx;
         psm__f32 old_weight = blend_key_tables[bs_i].weight;
-        bool idx_dirty = (old_index != index),
-                    weight_dirty = (old_weight != weight);
+        bool     idx_dirty = (old_index != index),
+             weight_dirty = (old_weight != weight);
         if (weight_dirty)
           idx_dirty = weight == 0.0f ||
-              old_weight == 0.0f || old_index != index;
+                      old_weight == 0.0f || old_index != index;
 
         blend_key_tables[bs_i].idx_dirty = idx_dirty;
         blend_key_tables[bs_i].weight_dirty = weight_dirty;
@@ -294,11 +304,12 @@ psm__resolve_bindings(struct psm__model *m)
 
   for (psm__i32 bi = 0; bi < count; bi++) {
     psm__i32 binding_count = binds[bi].key_table_len;
+
     struct psm__key_table **bindings = binds[bi].key_tables;
 
-    bool idx_dirty = false;
-    bool weight_dirty = false;
-    bool out_of_range = false;
+    bool     idx_dirty = false;
+    bool     weight_dirty = false;
+    bool     out_of_range = false;
     psm__u32 active_binding_count = 0;
 
     /* Skip if no bindings */
@@ -355,13 +366,6 @@ psm__resolve_bindings(struct psm__model *m)
     psm__u32 blend_count = 1u << active_binding_count;
     binds[bi].blend_count = blend_count;
 
-    if (active_binding_count == 31) {
-      binds[bi].idx_dirty = idx_dirty;
-      binds[bi].weight_dirty = weight_dirty;
-      binds[bi].out_of_range = false;
-      continue;
-    }
-
     /* Skip if keyform_idx or weights arrays are missing */
     if (!binds[bi].keyform_idx || !binds[bi].weights) {
       binds[bi].idx_dirty = 0;
@@ -386,6 +390,7 @@ psm__resolve_bindings(struct psm__model *m)
 
     for (psm__i32 i = 0; i < binding_count; i++) {
       struct psm__key_table *binding = bindings[i];
+
       psm__i32 index = binding->idx;
       psm__i32 key_count = binding->key_count;
       psm__f32 weight = binding->weight;
@@ -488,11 +493,12 @@ psm__resolve_blend_bindings(struct psm__model *m)
 
     for (psm__i32 i = 0; i < constraint_count; i++) {
       struct psm__blend_constraint *constraint = binds[bi].constraints[i];
-      struct psm__param *param = constraint->param;
+      struct psm__param            *param = constraint->param;
+
       psm__f32 constraint_weight = 1.0f;
 
       if (param != NULL && (force_update || param->dirty)) {
-        psm__i32 key_count = constraint->count;
+        psm__i32  key_count = constraint->count;
         psm__f32 *keys = constraint->keys, *weights = constraint->weights;
 
         if (key_count >= 2) {
@@ -500,12 +506,13 @@ psm__resolve_blend_bindings(struct psm__model *m)
           if (value > keys[0]) {
             /* Find upper bound */
             psm__i32 idx;
-            for (idx = 1; idx < key_count && value >= keys[idx]; idx++) {}
+            for (idx = 1; idx < key_count && value >= keys[idx]; idx++) {
+            }
             idx--;
             if (idx < key_count - 1) {
               psm__f32 t = (value - keys[idx]) / (keys[idx + 1] - keys[idx]);
               constraint_weight = weights[idx] * (1.0f - t) +
-                  weights[idx + 1] * t;
+                                  weights[idx + 1] * t;
             } else {
               constraint_weight = weights[key_count - 1];
             }

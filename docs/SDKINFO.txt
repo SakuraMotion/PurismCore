@@ -1,6 +1,7 @@
 From scripts/build-dist.sh:
 
 # Output layout:
+#
 #   dist/sdk/
 #     include/PurismCore.h
 #     include/Live2DCubismCore.h
@@ -12,15 +13,22 @@ From scripts/build-dist.sh:
 #     lib/windows/x86_64/PurismCore.a
 #     lib/windows/x86/PurismCore.a
 #     lib/windows/arm64/PurismCore.a
-#     dll/linux/x86_64/libPurismCore.so
-#     dll/macos/x86_64/libPurismCore.dylib
-#     dll/macos/arm64/libPurismCore.dylib
-#     dll/macos/universal/libPurismCore.dylib
+#     dll/linux/x86_64/libPurismCore.so       (.so.1, .so.1.1.0 symlinks)
+#     dll/macos/x86_64/libPurismCore.1.dylib  (+ .dylib symlink)
+#     dll/macos/arm64/libPurismCore.1.dylib
+#     dll/macos/universal/libPurismCore.1.dylib
 #     dll/windows/x86_64/PurismCore.dll
 #     dll/windows/x86/PurismCore.dll
 #     dll/windows/arm64/PurismCore.dll
+#     bin/linux/x86_64/viewer  + libraylib.so*    (rpath $ORIGIN)
+#     bin/linux/arm64/viewer   + libraylib.so*
+#     bin/macos/x86_64/viewer  + libraylib.dylib  (rpath @loader_path)
+#     bin/macos/arm64/viewer   + libraylib.dylib
+#     bin/macos/universal/Viewer.app/  (lipo'd; Contents/{Info.plist,MacOS/})
+#     bin/windows/x86_64/viewer.exe    (static raylib; self-contained)
+#     bin/windows/x86/viewer.exe
 #     bundle/PurismCoreBundle.h
 #
-# v5 compat builds go under lib-v5/ and dll-v5/ (Windows only).
+# v5 compat builds go under lib-v5/ and dll-v5/ (Windows only; no viewer).
 
 Documentation is included as well (*.md and *.txt files).

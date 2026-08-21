@@ -10,12 +10,13 @@
 
 #include <string.h>
 #include "private.h"
+#include "debug.h"
 #include "moc3.h"
 #include "model.h"
 
 struct psm__gather_channel {
   const psm__f32 *src;
-  psm__f32 *dst;
+  psm__f32       *dst;
 };
 
 /*
@@ -27,13 +28,12 @@ struct psm__gather_channel {
  */
 static inline void
 psm__gather_scalars(
-    psm__i32 count,
-    struct psm__binding *const *bindings,
-    const psm__i32 *keyform_offset,
-    psm__i32 max_keyforms,
-    struct psm__interp *interp,
+    psm__i32                          count,
+    struct psm__binding *const       *bindings,
+    const psm__i32                   *keyform_offset,
+    struct psm__interp               *interp,
     const struct psm__gather_channel *channels,
-    psm__i32 n_channels)
+    psm__i32                          n_channels)
 {
   psm__i32 offset = 0;
   for (psm__i32 i = 0; i < count; i++) {
@@ -48,8 +48,6 @@ psm__gather_scalars(
     if (b->idx_dirty && cc > 0) {
       for (psm__i32 j = 0; j < cc; j++) {
         psm__i32 kfi = b->keyform_idx[j] + keyform_offset[i];
-        if ((psm__u32)kfi >= (psm__u32)max_keyforms)
-          continue;
         for (psm__i32 c = 0; c < n_channels; c++)
           channels[c].dst[offset + j] = channels[c].src[kfi];
       }
@@ -70,14 +68,12 @@ psm__gather_scalars(
  */
 static inline void
 psm__gather_positions(
-    psm__i32 count,
+    psm__i32                    count,
     struct psm__binding *const *bindings,
-    const psm__i32 *keyform_offset,
-    psm__i32 max_keyforms,
-    const psm__f32 *pos_xy,
-    const psm__i32 *pos_begin,
-    psm__i32 max_pos,
-    psm__f32 **pos_dst)
+    const psm__i32             *keyform_offset,
+    const psm__f32             *pos_xy,
+    const psm__i32             *pos_begin,
+    psm__f32                  **pos_dst)
 {
   psm__i32 offset = 0;
   for (psm__i32 i = 0; i < count; i++) {
@@ -87,11 +83,7 @@ psm__gather_positions(
     if (b->idx_dirty && b->blend_count > 0) {
       for (psm__i32 j = 0; j < b->blend_count; j++) {
         psm__i32 kfi = b->keyform_idx[j] + keyform_offset[i];
-        if ((psm__u32)kfi >= (psm__u32)max_keyforms)
-          continue;
         psm__i32 pi = pos_begin[kfi];
-        if ((psm__u32)pi >= (psm__u32)max_pos)
-          continue;
         pos_dst[offset + j] = (psm__f32 *)&pos_xy[pi];
       }
     }
@@ -105,14 +97,13 @@ psm__gather_positions(
  */
 static inline void
 psm__gather_colors(
-    psm__i32 count,
-    struct psm__binding *const *bindings,
-    const psm__i32 *key_color_offset,
-    psm__i32 max_kf_colors,
+    psm__i32                         count,
+    struct psm__binding *const      *bindings,
+    const psm__i32                  *key_color_offset,
     const struct psm__key_color_src *mul_src,
     const struct psm__key_color_src *scr_src,
-    struct psm__color3 *mul_dst,
-    struct psm__color3 *scr_dst)
+    struct psm__color3              *mul_dst,
+    struct psm__color3              *scr_dst)
 {
   psm__i32 offset = 0;
   for (psm__i32 i = 0; i < count; i++) {
@@ -123,8 +114,6 @@ psm__gather_colors(
     if (b->idx_dirty && cc > 0) {
       for (psm__i32 j = 0; j < cc; j++) {
         psm__i32 kfi = b->keyform_idx[j] + key_color_offset[i];
-        if ((psm__u32)kfi >= (psm__u32)max_kf_colors)
-          continue;
         psm__i32 oj = offset + j;
         mul_dst->r[oj] = mul_src->r[kfi];
         mul_dst->g[oj] = mul_src->g[kfi];
@@ -144,22 +133,19 @@ psm__gather_colors(
  */
 static inline void
 psm__gather_reflect(
-    psm__i32 count,
+    psm__i32                    count,
     struct psm__binding *const *bindings,
-    const psm__i32 *keyform_offset,
-    psm__i32 max_keyforms,
-    const psm__i32 *rfx_src,
-    const psm__i32 *rfy_src,
-    psm__i32 *rfx_dst,
-    psm__i32 *rfy_dst)
+    const psm__i32             *keyform_offset,
+    const psm__i32             *rfx_src,
+    const psm__i32             *rfy_src,
+    psm__i32                   *rfx_dst,
+    psm__i32                   *rfy_dst)
 {
   for (psm__i32 i = 0; i < count; i++) {
     struct psm__binding *b = bindings[i];
     if (!b || !b->idx_dirty || b->blend_count <= 0)
       continue;
     psm__i32 kfi = b->keyform_idx[0] + keyform_offset[i];
-    if ((psm__u32)kfi >= (psm__u32)max_keyforms)
-      continue;
     rfx_dst[i] = rfx_src[kfi];
     rfy_dst[i] = rfy_src[kfi];
   }

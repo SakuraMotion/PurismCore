@@ -46,7 +46,7 @@ enum {
   psm__debug_print(PSM__LOG_DEBUG, PSM__LOG_PREFIX_DEBUG fmt "\n", __VA_ARGS__)
 
 PSM__DEF psm__log_level psm__get_log_level(void);
-PSM__DEF void psm__set_log_level(psm__log_level level);
-PSM__DEF void psm__debug_print(int level, const char *format, ...);
+PSM__DEF void           psm__set_log_level(psm__log_level level);
+PSM__DEF void           psm__debug_print(int level, const char *format, ...);
 
 #endif /* PSM__DEBUG_H */

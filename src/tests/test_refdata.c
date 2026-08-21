@@ -43,7 +43,7 @@ TEST(P##_rot) \
       &a, &s, &ox, &oy, &rfx, &rfy); \
   rc.base_angle = P##_ROT_BASE; \
   psm__f32 out[8]; \
-  psm__rot_transform(&m, 0, P##_rot_in, out, 4); \
+  psm__rotation_transform(&m, 0, P##_rot_in, out, 4); \
   for (int i = 0; i < 8; i++) \
     CHECK_FLOAT(out[i], P##_rot_out[i], 0.0001f); \
 }

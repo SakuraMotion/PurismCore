@@ -1,0 +1,11 @@
+@PACKAGE_INIT@
+
+# Purism Core CMake package config. Provides the imported target
+# PurismCore::PurismCore (include dirs + linkage). Consumers:
+#
+#   find_package(PurismCore REQUIRED)
+#   target_link_libraries(app PRIVATE PurismCore::PurismCore)
+
+include("${CMAKE_CURRENT_LIST_DIR}/PurismCoreTargets.cmake")
+
+check_required_components(PurismCore)

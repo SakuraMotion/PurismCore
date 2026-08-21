@@ -510,13 +510,10 @@ main(int argc, char **argv)
     return 1;
   }
 
-  csmMocVersion moc_ver = csmGetMocVersion(moc_data,
-      (unsigned int)moc_size);
-  int consistent = csmHasMocConsistency(moc_data,
-      (unsigned int)moc_size);
+  csmMocVersion moc_ver = csmGetMocVersion(moc_data, (unsigned int)moc_size);
+  int consistent = csmHasMocConsistency(moc_data, (unsigned int)moc_size);
   if (!consistent) {
-    fprintf(stderr,
-        "Error: MOC3 file failed consistency check\n");
+    fprintf(stderr, "Error: MOC3 file failed consistency check\n");
     psm_aligned_free(moc_data);
     return 1;
   }

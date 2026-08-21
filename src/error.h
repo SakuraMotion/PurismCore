@@ -10,10 +10,12 @@
 
 #include "private.h"
 
+// clang-format off
 #define PSM__FAILM(cond, v, msg) \
   if (cond) { PSM__LOG(msg); return v; }
 #define PSM__FAIL(cond, v, fmt, ...) \
   if (cond) { PSM__LOGF(fmt, __VA_ARGS__); return v; }
+// clang-format on
 
 enum {
   PSM__OK,

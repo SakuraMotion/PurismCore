@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key>           <string>Purism Viewer</string>
+  <key>CFBundleDisplayName</key>    <string>Purism Viewer</string>
+  <key>CFBundleIdentifier</key>     <string>org.sakura2d.purism-core-viewer</string>
+  <key>CFBundleVersion</key>        <string>@PSM_VER_STRING@</string>
+  <key>CFBundleShortVersionString</key><string>@PSM_VER_STRING@</string>
+  <key>CFBundleExecutable</key>     <string>viewer</string>
+  <key>CFBundlePackageType</key>    <string>APPL</string>
+  <key>CFBundleSignature</key>      <string>????</string>
+  <key>LSMinimumSystemVersion</key> <string>11.0</string>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSPrincipalClass</key>       <string>NSApplication</string>
+</dict>
+</plist>

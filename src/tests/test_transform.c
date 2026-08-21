@@ -2,7 +2,7 @@
  * Warp and rotation deformer transform tests.
  *
  * Sets up minimal model state on the stack to exercise
- * psm__warp_transform and psm__rot_transform directly.
+ * psm__warp_transform and psm__rotation_transform directly.
  */
 
 static void
@@ -199,7 +199,7 @@ TEST(rotation_identity)
       &a, &s, &ox, &oy, &rfx, &rfy);
 
   psm__f32 inp[] = {1.0f, 0.0f}, out[2];
-  psm__rot_transform(&m, 0, inp, out, 1);
+  psm__rotation_transform(&m, 0, inp, out, 1);
   CHECK_FLOAT(out[0], 1.0f, 0.001f);
   CHECK_FLOAT(out[1], 0.0f, 0.001f);
 }
@@ -215,7 +215,7 @@ TEST(rotation_90_degrees)
       &a, &s, &ox, &oy, &rfx, &rfy);
 
   psm__f32 inp[] = {1.0f, 0.0f}, out[2];
-  psm__rot_transform(&m, 0, inp, out, 1);
+  psm__rotation_transform(&m, 0, inp, out, 1);
   CHECK_FLOAT(out[0], 0.0f, 0.01f);
   CHECK_FLOAT(out[1], 1.0f, 0.01f);
 }
@@ -232,10 +232,10 @@ TEST(rotation_with_origin)
   make_rot_model(&m, &dn, &rc,
       &a, &s, &ox, &oy, &rfx, &rfy);
 
-  /* M(180°) = (-1, 0; 0, -1) */
+  /* M(180) = (-1, 0; 0, -1) */
   /* result = (-1,0;0,-1) * (1,0) + (5,5) = (4, 5) */
   psm__f32 inp[] = {1.0f, 0.0f}, out[2];
-  psm__rot_transform(&m, 0, inp, out, 1);
+  psm__rotation_transform(&m, 0, inp, out, 1);
   CHECK_FLOAT(out[0], 4.0f, 0.01f);
   CHECK_FLOAT(out[1], 5.0f, 0.01f);
 }
@@ -251,7 +251,7 @@ TEST(rotation_with_scale)
       &a, &s, &ox, &oy, &rfx, &rfy);
 
   psm__f32 inp[] = {3.0f, 4.0f}, out[2];
-  psm__rot_transform(&m, 0, inp, out, 1);
+  psm__rotation_transform(&m, 0, inp, out, 1);
   CHECK_FLOAT(out[0], 6.0f, 0.01f);
   CHECK_FLOAT(out[1], 8.0f, 0.01f);
 }
@@ -267,7 +267,7 @@ TEST(rotation_reflect_x)
       &a, &s, &ox, &oy, &rfx, &rfy);
 
   psm__f32 inp[] = {3.0f, 4.0f}, out[2];
-  psm__rot_transform(&m, 0, inp, out, 1);
+  psm__rotation_transform(&m, 0, inp, out, 1);
   CHECK_FLOAT(out[0], -3.0f, 0.01f);
   CHECK_FLOAT(out[1], 4.0f, 0.01f);
 }

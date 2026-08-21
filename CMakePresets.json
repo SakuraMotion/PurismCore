@@ -1,0 +1,111 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "zig-cross-linux-x86_64",
+      "description": "Cross-build for x86_64 Linux (ELF, gnu ABI) via zig cc",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/_cmake/zig-cross-linux-x86_64",
+      "toolchainFile": "${sourceDir}/cmake/zig-toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "Linux",
+        "CMAKE_SYSTEM_PROCESSOR": "x86_64",
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "environment": {
+        "ZIG_TARGET": "x86_64-linux-gnu"
+      }
+    },
+    {
+      "name": "zig-cross-linux-arm64",
+      "description": "Cross-build for aarch64 Linux (ELF, gnu ABI) via zig cc",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/_cmake/zig-cross-linux-arm64",
+      "toolchainFile": "${sourceDir}/cmake/zig-toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "Linux",
+        "CMAKE_SYSTEM_PROCESSOR": "arm64",
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "environment": {
+        "ZIG_TARGET": "aarch64-linux-gnu"
+      }
+    },
+    {
+      "name": "zig-cross-macos-x86_64",
+      "description": "Cross-build for x86_64 macOS (Mach-O) via zig cc",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/_cmake/zig-cross-macos-x86_64",
+      "toolchainFile": "${sourceDir}/cmake/zig-toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "Darwin",
+        "CMAKE_SYSTEM_PROCESSOR": "x86_64",
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "environment": {
+        "ZIG_TARGET": "x86_64-macos"
+      }
+    },
+    {
+      "name": "zig-cross-macos-arm64",
+      "description": "Cross-build for arm64 macOS (Mach-O) via zig cc",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/_cmake/zig-cross-macos-arm64",
+      "toolchainFile": "${sourceDir}/cmake/zig-toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "Darwin",
+        "CMAKE_SYSTEM_PROCESSOR": "arm64",
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "environment": {
+        "ZIG_TARGET": "aarch64-macos"
+      }
+    },
+    {
+      "name": "zig-cross-windows-x86_64",
+      "description": "Cross-build for x86_64 Windows (PE, mingw GNU ABI) via zig cc",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/_cmake/zig-cross-windows-x86_64",
+      "toolchainFile": "${sourceDir}/cmake/zig-toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "Windows",
+        "CMAKE_SYSTEM_PROCESSOR": "x86_64",
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "environment": {
+        "ZIG_TARGET": "x86_64-windows-gnu"
+      }
+    },
+    {
+      "name": "zig-cross-windows-x86",
+      "description": "Cross-build for i686 Windows (PE, mingw GNU ABI) via zig cc",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/_cmake/zig-cross-windows-x86",
+      "toolchainFile": "${sourceDir}/cmake/zig-toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "Windows",
+        "CMAKE_SYSTEM_PROCESSOR": "x86",
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "environment": {
+        "ZIG_TARGET": "x86-windows-gnu"
+      }
+    },
+    {
+      "name": "zig-cross-windows-arm64",
+      "description": "Cross-build for aarch64 Windows (PE, mingw GNU ABI) via zig cc",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/_cmake/zig-cross-windows-arm64",
+      "toolchainFile": "${sourceDir}/cmake/zig-toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "Windows",
+        "CMAKE_SYSTEM_PROCESSOR": "arm64",
+        "CMAKE_BUILD_TYPE": "Release"
+      },
+      "environment": {
+        "ZIG_TARGET": "aarch64-windows-gnu"
+      }
+    }
+  ]
+}

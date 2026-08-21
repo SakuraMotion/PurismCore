@@ -160,6 +160,52 @@ int csmHasMocConsistency(data, size); /* returns 0 or 1 */
 > Always call `csmHasMocConsistency` before `csmReviveMocInPlace` when loading
 > untrusted data.
 
+## Error Handling
+
+```C
+csmError    csmGetMocError(moc);
+csmError    csmGetLastError(model);
+const char *csmGetErrorString(error);
+```
+
+- `csmGetMocError` returns the outcome of the most recent `csmReviveMocInPlace`
+  or `csmInitializeModelInPlace` on the MOC3 file. Returns `csmError_NoError`
+  on success.
+
+> [!NOTE]
+> Both calls return NULL on failure, so query with the same moc/buffer pointer
+> afterwards.
+
+- `csmGetLastError` returns the error recorded by the model's most recent
+  `csmUpdateModel`. It is cleared to `csmError_NoError` at the start of each update.
+
+- `csmGetErrorString` maps a code to a static string (`"unknown error"` for
+  out-of-range codes).
+
+Passing NULL to either getter returns `csmError_NoError`.
+
+Error codes:
+
+```C
+csmError_NoError           /* 0: success */
+csmError_Failed            /* 1: operation failed */
+csmError_ParameterRange    /* 2: parameter outside [min, max], was clamped */
+csmError_FileUnrecognized  /* 3: not a MOC3 file */
+csmError_FileCorrupt       /* 4: MOC3 failed validation */
+csmError_InvalidData       /* 5: e.g. model buffer too small */
+csmError_InvalidParameter  /* 6 */
+```
+
+Since a failed revive returns NULL, the query pattern uses the original
+buffer pointer:
+
+```C
+csmMoc *moc = csmReviveMocInPlace(buf, size);
+if (!moc)
+  fprintf(stderr, "load failed: %s\n",
+      csmGetErrorString(csmGetMocError((const csmMoc *)buf)));
+```
+
 ## Parameters
 
 ```C
@@ -386,6 +432,7 @@ and pixels-per-unit from the model.
 ```C
 csmVersion csmGetVersion();
 csmVersion csmGetTrueVersion();
+const char *csmGetExtendedVersionString(); /* Purism Core extension */
 csmMocVersion csmGetLatestMocVersion();
 ```
 
@@ -393,6 +440,10 @@ csmMocVersion csmGetLatestMocVersion();
   v5, 0x06000001 for v6).
 
 - `csmGetTrueVersion` returns the actual Purism Core implementation version.
+
+- `csmGetExtendedVersionString` returns a human-readable build identity
+  (e.g. "1.1.0 (a1b2c3d)" as the true version plus the git revision the
+  library was built from or "unknown" if built outside).
 
 - `csmGetLatestMocVersion` returns the highest MOC3 format version the library
   can load (always `csmMocVersion_53`).
@@ -430,6 +481,7 @@ typedef unsigned int   csmVersion;
 typedef unsigned int   csmMocVersion;
 typedef unsigned char  csmFlags;
 typedef int            csmParameterType;
+typedef int            csmError;
 
 typedef struct { float X, Y; }          csmVector2;
 typedef struct { float X, Y, Z, W; }    csmVector4;

@@ -1,0 +1,11 @@
+From scripts/build-dist-web.sh:
+
+# Output layout:
+#
+#   dist/sdk-web/
+#     Core/purismcore.js
+#     Samples/Viewer/viewer.html + viewer.js + viewer.wasm
+#
+# v5 compat builds go under Core-v5/ (no viewer).
+
+Documentation is included as well (*.md and *.txt files).

@@ -39,6 +39,7 @@
 #include "../debug.c"
 #include "../arena.c"
 #include "../math2.c"
+#include "../verify.c"
 #include "../moc3.c"
 #include "../model.c"
 #include "../update.c"
@@ -127,6 +128,9 @@ main(void)
   RUN(glob_question);
   RUN(glob_case_insensitive);
   RUN(version_api);
+  RUN(resolve_params_range);
+  RUN(error_api);
+  RUN(moc_error_api);
 
   SUITE("reference data (extracted from real models)");
 #ifdef REF0_WARP_ROW

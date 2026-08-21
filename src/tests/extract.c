@@ -186,7 +186,7 @@ extract_one(const char *path, const char *pfx)
 
       float ti[] = {0, 0, 1, 0, 0, 1, -0.5f, 0.5f};
       float to[8];
-      psm__rot_transform(m, di, ti, to, 4);
+      psm__rotation_transform(m, di, ti, to, 4);
       print_arr(pfx, "rot_in", ti, 8);
       print_arr(pfx, "rot_out", to, 8);
     }

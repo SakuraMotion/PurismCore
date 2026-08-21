@@ -32,3 +32,7 @@ testdata/*
 # OS
 .DS_Store
 Thumbs.db
+/shot.png
+
+# Non-vendored dependencies
+third_party/local/
