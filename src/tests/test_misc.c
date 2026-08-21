@@ -128,24 +128,24 @@ TEST(resolve_params_range)
   /* all in range: no error, repeat param wraps without flagging */
   input[0] = 0.5f;
   input[1] = 3.25f;
-  CHECK(psm__resolve_params(&params) == false);
+  CHECK(psm__resolve_params(&params) == PSM__OK);
   CHECK_FLOAT(items[0].value, 0.5f, 0.0001f);
   CHECK_FLOAT(items[1].value, 0.25f, 0.0001f);
 
   /* non-repeat above max: error, value clamped, input rewritten to clamp */
   input[0] = 5.0f;
-  CHECK(psm__resolve_params(&params) == true);
+  CHECK(psm__resolve_params(&params) == PSM__ERR_PARAMETER_RANGE_ERROR);
   CHECK_FLOAT(items[0].value, 1.0f, 0.0001f);
   CHECK_FLOAT(input[0], 1.0f, 0.0001f);
 
   /* non-repeat below min: error, value clamped */
   input[0] = -9.0f;
-  CHECK(psm__resolve_params(&params) == true);
+  CHECK(psm__resolve_params(&params) == PSM__ERR_PARAMETER_RANGE_ERROR);
   CHECK_FLOAT(items[0].value, -1.0f, 0.0001f);
 
   /* empty parameter set: no error */
   params.count = 0;
-  CHECK(psm__resolve_params(&params) == false);
+  CHECK(psm__resolve_params(&params) == PSM__OK);
 }
 
 /* csmGetLastError on NULL is benign; csmGetErrorString covers every code. */
