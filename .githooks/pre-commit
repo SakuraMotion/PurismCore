@@ -3,11 +3,6 @@
 #
 # Enable once per clone:   git config core.hooksPath .githooks   (or: make hooks)
 # Override the binary:     CLANG_FORMAT=clang-format-19 git commit ...
-#
-# Each file's nearest .clang-format decides the style; DisableFormat trees
-# (tests, samples, vendored) are no-ops. Checks the working-tree copy of the
-# staged files (the usual, fast approximation) -- if a file has both staged and
-# unstaged edits, format the whole file before committing.
 
 CLANG_FORMAT="${CLANG_FORMAT:-clang-format}"
 

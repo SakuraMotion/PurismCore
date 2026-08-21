@@ -17,8 +17,6 @@ jobs:
         with:
           python-version: '3.x'
 
-      # Pinned: clang-format output drifts between major versions, so the gate
-      # must use the same version the tree was formatted with.
       - name: Install clang-format
         run: pip install clang-format==19.1.7
 
