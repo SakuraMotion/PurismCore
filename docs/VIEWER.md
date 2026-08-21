@@ -27,3 +27,4 @@ interactive: Tab panel  M masking  R reset view  wheel zoom  LMB pan
 ## Screenshots
 
 ![Purism Core viewer](viewer_shot_1.png)
+![Purism Core viewer](viewer_shot_2.png)
