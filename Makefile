@@ -212,7 +212,6 @@ fuzz: build/fuzzer | build/corpus
 MALLOC_CFLAGS = -g -O1 -I./include -I./src -DPSM_DEBUG_MALLOC \
                 -fsanitize=address,undefined,fuzzer-no-link -fno-sanitize-recover=undefined
 fuzz-malloc: | build/corpus
-	$(MAKE) clean
 	@mkdir -p build/corpus
 	$(MAKE) static-lib CC=$(FUZZ_CC) CFLAGS="$(MALLOC_CFLAGS)"
 	$(FUZZ_CC) $(FUZZ_CFLAGS) -DPSM_DEBUG_MALLOC -I./include \
