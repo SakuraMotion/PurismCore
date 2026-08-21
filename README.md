@@ -47,7 +47,7 @@ Purism Core should be compatible with existing frameworks that use Live2D
 Cubism Core, such as [Ren'Py](https://www.renpy.org/doc/html/live2d.html).
 
 We also provide a sample model viewer built with [raylib](https://raylib.com)
-in `src/samples/viewer/`.
+in `src/samples/viewer/`. [See screenshots and usage here](docs/VIEWER.md).
 
 ## Build Instructions
 

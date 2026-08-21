@@ -23,3 +23,7 @@ usage: viewer [options] <model.model3.json | model.moc3>
 interactive: Tab panel  M masking  R reset view  wheel zoom  LMB pan
              drag a .model3.json or .moc3 onto the window to load it
 ```
+
+## Screenshots
+
+![Purism Core viewer](viewer_shot_1.png)
