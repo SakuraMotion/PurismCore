@@ -34,10 +34,7 @@ extern "C" {
 #ifndef PSMDEF
 #  if defined(__EMSCRIPTEN__)
 #    include <emscripten.h>
-/* Mark every public function EMSCRIPTEN_KEEPALIVE so the wasm build exports the
-   whole API automatically -- the JS/WASM export surface then tracks exactly
-   what is compiled (so the v5/v6 difference needs no maintained list). */
-#    define PSMDEF EMSCRIPTEN_KEEPALIVE
+#    define PSMDEF EMSCRIPTEN_KEEPALIVE // avoid DCE
 #  elif defined(PURISM_CORE_STATIC)
 #    define PSMDEF static
 #  elif defined(_WIN32) && defined(PURISM_CORE_DLL)
@@ -251,10 +248,6 @@ typedef void (*csmLogFunction)(const char *message);
  */
 PSMDEF csmVersion csmGetVersion(void);
 PSMDEF csmVersion csmGetTrueVersion(void);
-/* Human-readable build identity, e.g. "1.0.1 (a1b2c3d)": the true version plus
-   the git revision the library was built from ("unknown" when built outside a
-   git checkout). For diagnostics / bug reports; the returned string is static
-   and must not be freed. */
 PSMDEF const char    *csmGetExtendedVersionString(void);
 PSMDEF csmMocVersion  csmGetLatestMocVersion(void);
 PSMDEF csmMocVersion  csmGetMocVersion(const void *, unsigned int);
@@ -285,17 +278,10 @@ PSMDEF void         csmReadCanvasInfo(const csmModel *,
             csmVector2 *, csmVector2 *, float *);
 
 /*
- * Error reporting (Purism Core extension; not present in Cubism Core).
+ * Error reporting.
+ *
  * csmGetMocError returns the outcome of the most recent csmReviveMocInPlace
- * or csmInitializeModelInPlace on this moc: csmError_NoError on success, or
- * e.g. csmError_FileUnrecognized / csmError_FileCorrupt after a failed revive,
- * or csmError_InvalidData when init was given too small a model buffer. Both
- * calls return NULL on failure, so query with the same moc/buffer afterwards.
- * A freshly initialized model inherits this code until its first update.
- * csmGetLastError returns the error recorded by the model's most recent
- * csmUpdateModel (cleared to csmError_NoError at the start of each update),
- * e.g. csmError_ParameterRange when an input parameter was outside [min,max]
- * and got clamped. csmGetErrorString maps a code to a static string.
+ * or csmInitializeModelInPlace on the MOC.
  */
 PSMDEF csmError    csmGetMocError(const csmMoc *);
 PSMDEF csmError    csmGetLastError(const csmModel *);
