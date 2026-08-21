@@ -176,7 +176,9 @@ psm__has_moc_consistency(const psm__u8 *p, psm_size n)
 
   struct psm__count_info *cnt = NULL;
 
-  int result = PSM__OK;
+  int r = PSM__OK;
+
+  PSM__FAILM(!p || !n, PSM__ERR_INVALID_PARAMETER, "buffer or size is NULL");
 
   PSM__FAILM(n < sizeof(struct psm__moc3_header),
       PSM__ERR_INVALID_DATA, "buffer too small");
@@ -216,7 +218,7 @@ psm__has_moc_consistency(const psm__u8 *p, psm_size n)
   for (psm_size i = 0; i < sec_count; i++) {
     if ((psm__i32)offsets[i] < 0 || offsets[i] > n) {
       PSM__LOGF("section offset [%u] invalid", (unsigned)i);
-      result = PSM__ERR_FILE_CORRUPT;
+      r = PSM__ERR_FILE_CORRUPT;
       goto restore;
     }
   }
@@ -224,18 +226,18 @@ psm__has_moc_consistency(const psm__u8 *p, psm_size n)
   /* Validate count_info section first */
   if ((offsets[0] & 3) != 0) {
     PSM__LOG("count_info misaligned");
-    result = PSM__ERR_FILE_CORRUPT;
+    r = PSM__ERR_FILE_CORRUPT;
     goto restore;
   }
   if (offsets[0] > n ||
       n - offsets[0] < PSM__COUNT_INFO_INTS(ver) * sizeof(psm__i32)) {
     PSM__LOG("count_info out of bounds");
-    result = PSM__ERR_FILE_CORRUPT;
+    r = PSM__ERR_FILE_CORRUPT;
     goto restore;
   }
   if (offsets[0] < off) {
     PSM__LOG("count_info before header end");
-    result = PSM__ERR_FILE_CORRUPT;
+    r = PSM__ERR_FILE_CORRUPT;
     goto restore;
   }
 
@@ -243,21 +245,21 @@ psm__has_moc_consistency(const psm__u8 *p, psm_size n)
   if (needs_bswap)
     psm__bswap_many_32(cnt, PSM__COUNT_INFO_INTS(ver));
 
-  result = psm__verify_count_info(ver, cnt);
-  if (result != PSM__OK)
+  r = psm__verify_count_info(ver, cnt);
+  if (r != PSM__OK)
     goto restore;
 
   {
     struct psm__sections tmp;
     memset(&tmp, 0, sizeof tmp);
-    result =
+    r =
         psm__verify_sections(&tmp, (psm__u8 *)p, offsets, n, off, ver, true);
-    if (result != PSM__OK)
+    if (r != PSM__OK)
       goto restore;
 
     if (needs_bswap)
       psm__bswap_model_data(ver, &tmp);
-    result = psm__verify_idx(ver, &tmp);
+    r = psm__verify_idx(ver, &tmp);
     if (needs_bswap)
       psm__bswap_model_data(ver, &tmp);
   }
@@ -269,7 +271,7 @@ restore:
     psm__bswap_many_32(offsets, sec_count);
   }
 
-  return result;
+  return r;
 }
 
 static int
@@ -279,10 +281,16 @@ psm__revive_moc_in_place(struct psm__moc3_data **moc, psm__u8 *p, psm_size n)
 
   psm_size off = 0;
 
+  PSM__FAILM(!p || !n, PSM__ERR_INVALID_PARAMETER, "buffer or size is NULL");
+
+  PSM__FAILM(n < sizeof(struct psm__moc3_header),
+      PSM__ERR_INVALID_DATA, "buffer too small");
   PSM__FAILM(memcmp(p, PSM__MOC3_MAGIC, PSM__MOC3_MAGIC_SIZE) != 0,
       PSM__ERR_FILE_UNRECOGNIZED, "unknown magic");
 
   psm__u8 ver = *(p + PSM__MOC3_MAGIC_SIZE);
+  PSM__FAILM(ver == csmMocVersion_Unknown,
+      PSM__ERR_FILE_CORRUPT, "invalid MOC3 version");
   PSM__FAILM(ver > csmMocVersion_53,
       PSM__ERR_FILE_CORRUPT, "unsupported MOC3 version");
 
