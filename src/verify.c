@@ -644,8 +644,7 @@ done_nonnull:
   }
 
   /* Blend shape parameter binding sources */
-  for (psm__i32 i = 0;
-      i < cnt->blend_key_tables; i++) {
+  for (psm__i32 i = 0; i < cnt->blend_key_tables; i++) {
     psm__model_check_range(src->blend_key_table_src.keys_off,
         src->blend_key_table_src.keys_len, i, cnt->keys);
   }
@@ -666,16 +665,14 @@ done_nonnull:
   }
 
   /* Blend shape warp deformer sources */
-  for (psm__i32 i = 0;
-      i < cnt->bs_warps; i++) {
+  for (psm__i32 i = 0; i < cnt->bs_warps; i++) {
     psm__model_check_index(src->bs_warp_src.target_idx, i, cnt->warps);
     psm__model_check_range(src->bs_warp_src.bs_binding_off,
         src->bs_warp_src.bs_binding_len, i, cnt->blend_bindings);
   }
 
   /* Blend shape art mesh sources */
-  for (psm__i32 i = 0;
-      i < cnt->bs_art_meshes; i++) {
+  for (psm__i32 i = 0; i < cnt->bs_art_meshes; i++) {
     psm__model_check_index(src->bs_art_mesh_src.target_idx,
         i, cnt->art_meshes);
     psm__model_check_range(src->bs_art_mesh_src.bs_binding_off,
@@ -683,15 +680,13 @@ done_nonnull:
   }
 
   /* Blend shape constraint index sources */
-  for (psm__i32 i = 0;
-      i < cnt->bs_constraint_idx; i++) {
+  for (psm__i32 i = 0; i < cnt->bs_constraint_idx; i++) {
     psm__model_check_index(src->blend_constraint_idx_src.constraint_idx,
         i, cnt->bs_constraints);
   }
 
   /* Blend shape constraint sources */
-  for (psm__i32 i = 0;
-      i < cnt->bs_constraints; i++) {
+  for (psm__i32 i = 0; i < cnt->bs_constraints; i++) {
     psm__model_check_index(src->blend_constraint_src.parameter_idx,
         i, cnt->parameters);
     psm__model_check_range(src->blend_constraint_src.value_off,
@@ -729,8 +724,7 @@ done_nonnull:
   }
 
   /* Blend shape rotation deformer sources */
-  for (psm__i32 i = 0;
-      i < cnt->bs_rotations; i++) {
+  for (psm__i32 i = 0; i < cnt->bs_rotations; i++) {
     psm__model_check_index(src->bs_rotation_src.target_idx, i, cnt->rotations);
     psm__model_check_range(src->bs_rotation_src.bs_binding_off,
         src->bs_rotation_src.bs_binding_len, i, cnt->blend_bindings);
@@ -772,8 +766,7 @@ done_nonnull:
   }
 
   /* Blend shape offscreen rendering sources */
-  for (psm__i32 i = 0;
-      i < cnt->bs_offscreens; i++) {
+  for (psm__i32 i = 0; i < cnt->bs_offscreens; i++) {
     psm__model_check_index(src->bs_offscreen_src.target_idx,
         i, cnt->offscreens);
     psm__model_check_range(src->bs_offscreen_src.bs_binding_off,

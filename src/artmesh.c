@@ -115,9 +115,6 @@ psm__apply_parts_to_meshes(struct psm__model *m)
 
   for (psm__i32 i = 0; i < count; i++) {
     psm__i32 ci = i * 4;
-    /* Color (multiply/screen) is a separate channel from render visibility;
-     * Cubism propagates the parent deformer's color to the child mesh even at
-     * opacity 0, so this must NOT skip on am_opa[i] == 0. */
     if (!en[i])
       continue;
     psm__i32 pd = meshes[i].parent_deformer_idx;
