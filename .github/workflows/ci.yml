@@ -224,10 +224,10 @@ jobs:
         run: |
           tag="${GITHUB_REF#refs/tags/}"
           mv dist/sdk "dist/PurismCore-${tag}"
-          cp dist/PurismCoreBundle.h "dist/PurismCoreBundle-${tag}.h"
-          cd dist && zip -r "PurismCore-${tag}.zip" "PurismCore-${tag}"
           mv dist/sdk-web "dist/PurismCore-${tag}-Web"
-          cd dist && zip -r "PurismCore-${tag}-Web.zip" "PurismCore-${tag}-Web"
+          cp dist/PurismCoreBundle.h "dist/PurismCoreBundle-${tag}.h"
+          ( cd dist && zip -r "PurismCore-${tag}.zip" "PurismCore-${tag}" )
+          ( cd dist && zip -r "PurismCore-${tag}-Web.zip" "PurismCore-${tag}-Web" )
 
       - name: Create release
         uses: softprops/action-gh-release@v2
