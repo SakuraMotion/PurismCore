@@ -13,5 +13,6 @@
 
 PSM__DEF void psm__enable_offscreens(struct psm__model *);
 PSM__DEF void psm__gather_offscreens(struct psm__model *);
+PSM__DEF void psm__process_offscreens(struct psm__model *);
 
 #endif /* PSM__OFFSCREEN_H */

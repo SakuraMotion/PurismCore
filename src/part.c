@@ -91,10 +91,9 @@ psm__apply_part_opacity(struct psm__model *m)
       part_opa[i] = opacity;
     }
 
-    if (offscreen_indices[i] != -1) {
-      psm__i32 offscreen_idx = offscreen_indices[i];
-      m->offscreens.opacity[offscreen_idx] *= opacity;
-    }
+    /* The owner-part multiplication for offscreen surfaces moved to the
+     * fused psm__process_offscreens dirty stage (it must run on the
+     * freshly re-interpolated offscreen opacity base). */
   }
 }
 

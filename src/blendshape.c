@@ -6,6 +6,7 @@
  */
 
 #include <math.h>
+#include <string.h>
 #include "private.h"
 #include "array.h"
 #include "blendshape.h"
@@ -45,13 +46,21 @@ psm__blend_interp_f32(const struct psm__blend_binding *binding,
   return binding->weight * value;
 }
 
+/*
+ * only_target: apply the blend contribution to a single target object
+ * (-1 = all targets, the original batch behavior). Used by the dirty
+ * pipeline to re-add contributions exactly when an object's base state
+ * is re-interpolated.
+ */
 static void
 blend_scalar_f32(psm__i32 count, const struct psm__blend_shape *shapes,
-    psm__f32 *values, const psm__f32 *keyform_src,
-    psm__f32 lo, psm__f32 hi)
+    psm__f32 *values, const psm__f32 *keyform_src, psm__f32 lo, psm__f32 hi,
+    psm__i32 only_target)
 {
   for (psm__i32 i = 0; i < count; i++) {
     psm__i32 ti = shapes[i].target_idx;
+    if (only_target >= 0 && ti != only_target)
+      continue;
     psm__i32 bc = shapes[i].binding_count;
     psm__f32 value = values[ti];
 
@@ -67,10 +76,12 @@ blend_scalar_f32(psm__i32 count, const struct psm__blend_shape *shapes,
 
 static void
 blend_scalar_i32(psm__i32 count, const struct psm__blend_shape *shapes,
-    psm__i32 *values, const psm__f32 *keyform_src)
+    psm__i32 *values, const psm__f32 *keyform_src, psm__i32 only_target)
 {
   for (psm__i32 i = 0; i < count; i++) {
     psm__i32 ti = shapes[i].target_idx;
+    if (only_target >= 0 && ti != only_target)
+      continue;
     psm__i32 bc = shapes[i].binding_count;
     psm__f32 value = (psm__f32)values[ti];
 
@@ -89,7 +100,8 @@ blend_scalar_i32(psm__i32 count, const struct psm__blend_shape *shapes,
 static void
 psm__blend_positions(const struct psm__model *m, psm__i32 count,
     const struct psm__blend_shape *shapes, const psm__i32 *keyform_pos_off,
-    psm__f32 **out_positions, const psm__i32 *vertex_counts)
+    psm__f32 **out_positions, const psm__i32 *vertex_counts,
+    psm__i32 only_target)
 {
   if (count <= 0)
     return;
@@ -103,6 +115,8 @@ psm__blend_positions(const struct psm__model *m, psm__i32 count,
 
   for (psm__i32 i = 0; i < count; i++) {
     psm__i32 ti = shapes[i].target_idx;
+    if (only_target >= 0 && ti != only_target)
+      continue;
     psm__i32 bc = shapes[i].binding_count;
     if (bc <= 0)
       continue;
@@ -161,7 +175,7 @@ static void
 psm__blend_colors(psm__i32 count, const struct psm__blend_shape *shapes,
     const psm__i32 *keyform_color_off,
     const psm__f32 *src_r, const psm__f32 *src_g, const psm__f32 *src_b,
-    psm__f32 *out)
+    psm__f32 *out, psm__i32 only_target)
 {
   if (count <= 0)
     return;
@@ -170,6 +184,8 @@ psm__blend_colors(psm__i32 count, const struct psm__blend_shape *shapes,
 
   for (psm__i32 i = 0; i < count; i++) {
     psm__i32 ti = shapes[i].target_idx;
+    if (only_target >= 0 && ti != only_target)
+      continue;
     psm__i32 bc = shapes[i].binding_count;
     psm__i32 ob = ti * 4;
 
@@ -248,11 +264,14 @@ psm__blend_parts(struct psm__model *m)
   if (!calc_do || !do_src)
     return;
 
-  blend_scalar_i32(count, shapes, calc_do, do_src);
+  blend_scalar_i32(count, shapes, calc_do, do_src, -1);
 }
 
+/* Add the blend-shape contributions of one warp deformer (local si) on top
+ * of its freshly re-interpolated base state. Mirrors the per-channel
+ * version gating of the former batch psm__blend_warps. */
 PSM__DEF void
-psm__blend_warps(struct psm__model *m)
+psm__blend_warp_one(struct psm__model *m, psm__i32 si)
 {
   if (m->source->header->version < csmMocVersion_42)
     return;
@@ -266,7 +285,7 @@ psm__blend_warps(struct psm__model *m)
     return;
 
   psm__blend_positions(m, count, shapes, ms->warp_key_src.key_pos_off,
-      m->deformers.warps.pos, ms->warp_src.vertex_count);
+      m->deformers.warps.pos, ms->warp_src.vertex_count, si);
 
   if (m->source->header->version < csmMocVersion_50)
     return;
@@ -277,21 +296,20 @@ psm__blend_warps(struct psm__model *m)
   if (!op_src || !calc_op)
     return;
 
-  blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f);
+  blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f, si);
 
   psm__blend_colors(count, shapes, ms->warp_key_src.key_mul_color_off,
       ms->keyform_mul_color_src.r, ms->keyform_mul_color_src.g,
-      ms->keyform_mul_color_src.b,
-      m->deformers.warps.mul_color);
+      ms->keyform_mul_color_src.b, m->deformers.warps.mul_color, si);
 
   psm__blend_colors(count, shapes, ms->warp_key_src.key_scr_color_off,
       ms->keyform_scr_color_src.r, ms->keyform_scr_color_src.g,
-      ms->keyform_scr_color_src.b,
-      m->deformers.warps.scr_color);
+      ms->keyform_scr_color_src.b, m->deformers.warps.scr_color, si);
 }
 
+/* Add the blend-shape contributions of one rotation deformer (local si). */
 PSM__DEF void
-psm__blend_rotations(struct psm__model *m)
+psm__blend_rotation_one(struct psm__model *m, psm__i32 si)
 {
   if (m->source->header->version < csmMocVersion_50)
     return;
@@ -307,41 +325,40 @@ psm__blend_rotations(struct psm__model *m)
   psm__f32 *ox_src = ms->rotation_key_src.origin_x;
   psm__f32 *calc_ox = m->deformers.rotations.origin_x;
   if (ox_src && calc_ox)
-    blend_scalar_f32(count, shapes, calc_ox, ox_src, -INFINITY, INFINITY);
+    blend_scalar_f32(count, shapes, calc_ox, ox_src, -INFINITY, INFINITY, si);
 
   psm__f32 *oy_src = ms->rotation_key_src.origin_y;
   psm__f32 *calc_oy = m->deformers.rotations.origin_y;
   if (oy_src && calc_oy)
-    blend_scalar_f32(count, shapes, calc_oy, oy_src, -INFINITY, INFINITY);
+    blend_scalar_f32(count, shapes, calc_oy, oy_src, -INFINITY, INFINITY, si);
 
   psm__f32 *op_src = ms->rotation_key_src.opacity;
   psm__f32 *calc_op = m->deformers.rotations.opacity;
   if (op_src && calc_op)
-    blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f);
+    blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f, si);
 
   psm__blend_colors(count, shapes, ms->rotation_key_src.key_mul_color_off,
       ms->keyform_mul_color_src.r, ms->keyform_mul_color_src.g,
-      ms->keyform_mul_color_src.b,
-      m->deformers.rotations.mul_color);
+      ms->keyform_mul_color_src.b, m->deformers.rotations.mul_color, si);
 
   psm__blend_colors(count, shapes, ms->rotation_key_src.key_scr_color_off,
       ms->keyform_scr_color_src.r, ms->keyform_scr_color_src.g,
-      ms->keyform_scr_color_src.b,
-      m->deformers.rotations.scr_color);
+      ms->keyform_scr_color_src.b, m->deformers.rotations.scr_color, si);
 
   psm__f32 *ang_src = ms->rotation_key_src.angle;
   psm__f32 *calc_ang = m->deformers.rotations.angle;
   if (ang_src && calc_ang)
-    blend_scalar_f32(count, shapes, calc_ang, ang_src, -3600.0f, 3600.0f);
+    blend_scalar_f32(count, shapes, calc_ang, ang_src, -3600.0f, 3600.0f, si);
 
   psm__f32 *sc_src = ms->rotation_key_src.scale;
   psm__f32 *calc_sc = m->deformers.rotations.scale;
   if (sc_src && calc_sc)
-    blend_scalar_f32(count, shapes, calc_sc, sc_src, 0.0001f, 100.0f);
+    blend_scalar_f32(count, shapes, calc_sc, sc_src, 0.0001f, 100.0f, si);
 }
 
+/* Add the blend-shape contributions of one art mesh (index i). */
 PSM__DEF void
-psm__blend_art_meshes(struct psm__model *m)
+psm__blend_art_mesh_one(struct psm__model *m, psm__i32 i)
 {
   if (m->source->header->version < csmMocVersion_42)
     return;
@@ -354,7 +371,7 @@ psm__blend_art_meshes(struct psm__model *m)
     return;
 
   psm__blend_positions(m, count, shapes, ms->art_mesh_key_src.key_pos_off,
-      m->art_meshes.pos, ms->art_mesh_src.vertex_count);
+      m->art_meshes.pos, ms->art_mesh_src.vertex_count, i);
 
   if (m->source->header->version < csmMocVersion_50)
     return;
@@ -362,20 +379,19 @@ psm__blend_art_meshes(struct psm__model *m)
   psm__f32 *do_src = ms->art_mesh_key_src.draw_order;
   psm__i32 *calc_do = m->art_meshes.draw_order;
   if (do_src && calc_do)
-    blend_scalar_i32(count, shapes, calc_do, do_src);
+    blend_scalar_i32(count, shapes, calc_do, do_src, i);
 
   psm__f32 *op_src = ms->art_mesh_key_src.opacity;
   psm__f32 *calc_op = m->art_meshes.opacity;
   if (op_src && calc_op)
-    blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f);
+    blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f, i);
 
   if (ms->art_mesh_key_src.key_mul_color_off &&
       ms->keyform_mul_color_src.r && ms->keyform_mul_color_src.g &&
       ms->keyform_mul_color_src.b && m->art_meshes.mul_color) {
     psm__blend_colors(count, shapes, ms->art_mesh_key_src.key_mul_color_off,
         ms->keyform_mul_color_src.r, ms->keyform_mul_color_src.g,
-        ms->keyform_mul_color_src.b,
-        m->art_meshes.mul_color);
+        ms->keyform_mul_color_src.b, m->art_meshes.mul_color, i);
   }
 
   if (ms->art_mesh_key_src.key_scr_color_off &&
@@ -383,8 +399,7 @@ psm__blend_art_meshes(struct psm__model *m)
       ms->keyform_scr_color_src.b && m->art_meshes.scr_color) {
     psm__blend_colors(count, shapes, ms->art_mesh_key_src.key_scr_color_off,
         ms->keyform_scr_color_src.r, ms->keyform_scr_color_src.g,
-        ms->keyform_scr_color_src.b,
-        m->art_meshes.scr_color);
+        ms->keyform_scr_color_src.b, m->art_meshes.scr_color, i);
   }
 }
 
@@ -409,11 +424,12 @@ psm__blend_glues(struct psm__model *m)
   if (!calc_int || !int_src)
     return;
 
-  blend_scalar_f32(count, shapes, calc_int, int_src, 0.0f, 1.0f);
+  blend_scalar_f32(count, shapes, calc_int, int_src, 0.0f, 1.0f, -1);
 }
 
+/* Add the blend-shape contributions of one offscreen surface (index i). */
 PSM__DEF void
-psm__blend_offscreens(struct psm__model *m)
+psm__blend_offscreen_one(struct psm__model *m, psm__i32 i)
 {
   if (m->source->header->version < csmMocVersion_53)
     return;
@@ -429,15 +445,60 @@ psm__blend_offscreens(struct psm__model *m)
   psm__f32 *op_src = ms->offscreen_key_src.opacity;
   psm__f32 *calc_op = m->offscreens.opacity;
   if (op_src && calc_op)
-    blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f);
+    blend_scalar_f32(count, shapes, calc_op, op_src, 0.0f, 1.0f, i);
 
   psm__blend_colors(count, shapes, ms->offscreen_key_src.key_mul_color_off,
       ms->keyform_mul_color_src.r, ms->keyform_mul_color_src.g,
-      ms->keyform_mul_color_src.b,
-      m->offscreens.mul_color);
+      ms->keyform_mul_color_src.b, m->offscreens.mul_color, i);
 
   psm__blend_colors(count, shapes, ms->offscreen_key_src.key_scr_color_off,
       ms->keyform_scr_color_src.r, ms->keyform_scr_color_src.g,
-      ms->keyform_scr_color_src.b,
-      m->offscreens.scr_color);
+      ms->keyform_scr_color_src.b, m->offscreens.scr_color, i);
+}
+
+/*
+ * Per-frame dirty scan: dirty[t] = 1 when any blend shape targeting
+ * object t is dirty this frame (its key table index/weight moved, or a
+ * constraint parameter moved). Fused stages use this to (a) force the
+ * object to recompute, and (b) re-add the blend contribution right after
+ * the base-state re-interpolation.
+ */
+PSM__DEF void
+psm__blend_targets_dirty(const struct psm__blend_shapes *bs, psm__i32 count,
+    psm__u8 *dirty)
+{
+  if (count <= 0 || !dirty)
+    return;
+  memset(dirty, 0, (size_t)count);
+
+  if (!bs || bs->count <= 0 || !bs->items)
+    return;
+
+  for (psm__i32 i = 0; i < bs->count; i++) {
+    struct psm__blend_shape *s = &bs->items[i];
+    psm__i32 ti = s->target_idx;
+    if (ti < 0 || ti >= count)
+      continue;
+
+    psm__i32 bc = s->binding_count;
+    if (bc <= 0 || !s->bindings)
+      continue;
+
+    for (psm__i32 j = 0; j < bc; j++) {
+      struct psm__blend_binding *bb = &s->bindings[j];
+      if (bb->idx_dirty || bb->weight_dirty) {
+        dirty[ti] = 1;
+        break;
+      }
+      for (psm__i32 k = 0; k < bb->constraint_count; k++) {
+        if (bb->constraints[k] && bb->constraints[k]->param &&
+            bb->constraints[k]->param->dirty) {
+          dirty[ti] = 1;
+          break;
+        }
+      }
+      if (dirty[ti])
+        break;
+    }
+  }
 }
