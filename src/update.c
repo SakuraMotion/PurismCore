@@ -250,9 +250,14 @@ PSMDEF void
 csmResetDrawableDynamicFlags(csmModel *model)
 {
   struct psm__model *m = (struct psm__model *)model;
-  psm__i32           count = m->art_meshes.count;
-  psm__u8           *flags = m->art_meshes.change_flags;
-  for (psm__i32 i = 0; i < count; i++)
-    flags[i] &= PSM__FLAG_IS_VISIBLE;
+  /* Align with official Cubism Core semantics: the reset only re-baselines
+   * the internal diff state (state_changed), it must NOT clear the change
+   * bits in the flag array in place. Host apps (e.g. the official Cubism
+   * Framework) call csmUpdateModel() then csmResetDrawableDynamicFlags()
+   * back to back, and only read the flags later while drawing. Clearing the
+   * array here would erase the current frame's DidChange bits before the
+   * host ever reads them (masks/clipping pipelines would see "no change"
+   * forever). The array keeps showing the current frame's flags until the
+   * next csmUpdateModel() overwrites it with the new diff. */
   m->art_meshes.state_changed = 1;
 }
