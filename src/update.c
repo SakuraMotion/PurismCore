@@ -250,7 +250,12 @@ psm__update_flags(struct psm__model *m)
         flags |= PSM__FLAG_DRAW_ORDER_CHANGED;
       if (ro[i] != last_ro[i])
         flags |= PSM__FLAG_RENDER_ORDER_CHANGED;
-      if (en[i])
+      /* Only flag VERTEX_CHANGED for meshes actually recomputed this
+       * frame (mesh_changed set in psm__process_art_meshes, which runs
+       * before psm__update_flags). Clean meshes keep their previous
+       * final positions, so their vertex buffers are already current and
+       * need no re-upload / mask re-draw. */
+      if (en[i] && m->mesh_changed[i])
         flags |= PSM__FLAG_VERTEX_CHANGED;
 
       if (mc && (memcmp(&mc[i * 4], &lmc[i * 4], 16) != 0 ||
