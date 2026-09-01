@@ -336,6 +336,8 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   psm__alloc_field(m->glue_bs_dirty, psm__u8, cnt->glues);
   psm__alloc_field(m->offscreen_last_enable, psm__u8, cnt->offscreens);
   psm__alloc_field(m->offscreen_blend_dirty, psm__u8, cnt->offscreens);
+  psm__alloc_field(m->part_opa_dirty, psm__u8, cnt->parts);
+  psm__alloc_field(m->part_opa_prev, psm__f32, cnt->parts);
 
   /* Parameters */
   psm__alloc_field(m->params.items, struct psm__param, cnt->parameters);

@@ -404,6 +404,13 @@ struct psm__model {
   psm__u8                      *glue_bs_dirty;
   psm__u8                      *offscreen_last_enable;
   psm__u8                      *offscreen_blend_dirty;
+  /* Part effective-opacity change tracking (per part): part_opa_dirty[i] is
+   * set when part i's effective opacity differs from the previous frame, so
+   * art meshes whose parent part is i are forced to recompute (their final
+   * opacity = mesh opacity * part effective opacity would otherwise stay
+   * stale when the user changes a part opacity while the mesh is clean). */
+  psm__u8                      *part_opa_dirty;
+  psm__f32                     *part_opa_prev;
 };
 
 #endif /* PSM__MODEL_H */

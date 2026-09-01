@@ -128,6 +128,7 @@ psm__process_art_meshes(struct psm__model *m)
   psm__f32 *am_opa = m->art_meshes.opacity;
   psm__f32 *part_opa = m->parts.opacity;
   psm__i32 *part_off = m->parts.offscreen_src_idx;
+  psm__u8 *pod = m->part_opa_dirty;
   psm__u8 version = m->source->header->version;
 
   for (psm__i32 i = 0; i < count; i++) {
@@ -141,11 +142,14 @@ psm__process_art_meshes(struct psm__model *m)
     psm__i32 parent_changed = (pdi != -1) ? dch[pdi] : 0;
 
     /* The parent-part contribution of a mesh is its effective opacity,
-     * which changes only when the part chain's enable state flips.
-     * Such a flip also flips this mesh's own enable (part_en is part of
-     * the mesh enable), which en_flip catches; when the mesh stays
-     * enabled its parent part stayed enabled too, so the opacity is
-     * unchanged and no separate part-change check is needed. */
+     * multiplied in below. A part-chain enable flip also flips this mesh's
+     * own enable (part_en is part of the mesh enable), which en_flip
+     * catches. The part's effective opacity can ALSO change at runtime when
+     * the user adjusts a part opacity via the UI (input_opacity changes
+     * without any enable flip); psm__apply_part_opacity tracks that per part
+     * (part_opa_dirty), so meshes depending on a changed part recompute too. */
+    psm__i32 part_opa_changed =
+        (pp != -1 && part_off[pp] == -1 && pod) ? pod[pp] : 0;
 
     if (!en[i]) {
       changed[i] = 0;
@@ -153,7 +157,8 @@ psm__process_art_meshes(struct psm__model *m)
       continue;
     }
 
-    if (!self_dirty && !mb[i] && !gd[i] && !en_flip && !parent_changed) {
+    if (!self_dirty && !mb[i] && !gd[i] && !en_flip && !parent_changed
+        && !part_opa_changed) {
       changed[i] = 0;
       last_en[i] = 1;
       continue;
