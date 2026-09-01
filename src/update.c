@@ -284,11 +284,25 @@ psm__update_flags(struct psm__model *m)
 }
 
 /*
- * Per-frame dirty scan: glue_mesh_dirty[t] = 1 when a dirty glue
- * (intensity key data moved, or a blend shape targeting the glue is
- * dirty) involves art mesh t. Dirty meshes are forced to recompute so
- * their positions are rebuilt to the pre-glue state before the glue is
- * re-applied (the glue contribution is stateful / additive).
+ * Per-frame glue->mesh dirty propagation.
+ *
+ * A glue re-applies a stateful (additive) position contribution to BOTH of
+ * its endpoint meshes. For the re-application to be exact, BOTH endpoints
+ * must first be recomputed to their fresh PRE-glue positions; if one
+ * endpoint stays clean it keeps its previous FINAL (post-glue) position, so
+ * the glue is applied on top of an already-pulled position (double counting)
+ * and that endpoint is never marked mesh_changed -- so it is not re-uploaded,
+ * not Y-reversed consistently, and its VERTEX_CHANGED flag (vertex re-upload
+ * + mask re-draw) is never raised. That mismatch is the arm flicker /
+ * wrong-position symptom.
+ *
+ * glue_mesh_dirty[t] is therefore set for an endpoint whenever:
+ *   - the glue itself moved (intensity key data / blend shape), OR
+ *   - either endpoint is recomputed for its own reasons (base dirty below).
+ * The propagation runs to a fixed point so chained glues (a mesh shared by
+ * two glues) are handled. Must run after the enable / deformer / part
+ * stages (their outputs feed the base-dirty test) and before
+ * psm__process_art_meshes reads glue_mesh_dirty.
  */
 static void
 psm__glue_mesh_dirty(struct psm__model *m)
@@ -299,6 +313,32 @@ psm__glue_mesh_dirty(struct psm__model *m)
     return;
   memset(gmd, 0, (size_t)nmesh);
 
+  struct psm__art_mesh *meshes = m->art_meshes.meshes;
+  bool *en = m->art_meshes.enable;
+  psm__u8 *last_en = m->mesh_last_enable;
+  psm__u8 *mb = m->mesh_blend_dirty;
+  psm__u8 *dch = m->deformer_changed;
+  psm__u8 *pod = m->part_opa_dirty;
+  psm__i32 *part_off = m->parts.offscreen_src_idx;
+
+  /* Base dirty: this mesh's own recompute reasons (everything in
+   * psm__process_art_meshes except the glue propagation itself). Seeds gmd. */
+  for (psm__i32 i = 0; i < nmesh; i++) {
+    if (!en[i])
+      continue;
+    struct psm__art_mesh *mesh = &meshes[i];
+    struct psm__binding *b = mesh->binding;
+    psm__i32 self = b ? (b->idx_dirty || b->weight_dirty) : 1;
+    psm__i32 en_flip = (en[i] != (last_en[i] != 0));
+    psm__i32 pdi = mesh->parent_deformer_idx;
+    psm__i32 parent_changed = (pdi != -1) ? dch[pdi] : 0;
+    psm__i32 pp = mesh->parent_part_idx;
+    psm__i32 part_opa_changed =
+        (pp != -1 && part_off[pp] == -1 && pod) ? pod[pp] : 0;
+    if (self || mb[i] || en_flip || parent_changed || part_opa_changed)
+      gmd[i] = 1;
+  }
+
   psm__i32 nglue = m->glues.count;
   if (nglue <= 0 || !m->glues.items)
     return;
@@ -306,17 +346,27 @@ psm__glue_mesh_dirty(struct psm__model *m)
   struct psm__glue *items = m->glues.items;
   psm__u8 *gb = m->glue_bs_dirty;
 
-  for (psm__i32 gi = 0; gi < nglue; gi++) {
-    struct psm__glue *glue = &items[gi];
-    struct psm__binding *b = glue->binding;
-    psm__i32 self = b ? (b->idx_dirty || b->weight_dirty) : 1;
-    if (!self && (!gb || !gb[gi]))
-      continue;
-    psm__i32 m0 = glue->mesh_idx0, m1 = glue->mesh_idx1;
-    if (m0 >= 0 && m0 < nmesh)
-      gmd[m0] = 1;
-    if (m1 >= 0 && m1 < nmesh)
-      gmd[m1] = 1;
+  /* Fixed point: activate a glue when it moved OR either endpoint is dirty;
+   * activation marks BOTH endpoints dirty. Repeat until stable (a mesh can be
+   * shared by two glues, so one pass is not enough in the chained case). */
+  for (psm__i32 pass = 0; pass <= nglue; pass++) {
+    psm__i32 changed = 0;
+    for (psm__i32 gi = 0; gi < nglue; gi++) {
+      struct psm__glue *glue = &items[gi];
+      struct psm__binding *b = glue->binding;
+      psm__i32 self = b ? (b->idx_dirty || b->weight_dirty) : 1;
+      psm__i32 m0 = glue->mesh_idx0, m1 = glue->mesh_idx1;
+      psm__i32 active =
+          self || (gb && gb[gi]) ||
+          (m0 >= 0 && m0 < nmesh && gmd[m0]) ||
+          (m1 >= 0 && m1 < nmesh && gmd[m1]);
+      if (!active)
+        continue;
+      if (m0 >= 0 && m0 < nmesh && !gmd[m0]) { gmd[m0] = 1; changed = 1; }
+      if (m1 >= 0 && m1 < nmesh && !gmd[m1]) { gmd[m1] = 1; changed = 1; }
+    }
+    if (!changed)
+      break;
   }
 }
 
@@ -348,7 +398,6 @@ psm__update_model(struct psm__model *m)
   psm__blend_targets_dirty(&m->bs_glues, m->glues.count, m->glue_bs_dirty);
   psm__blend_targets_dirty(&m->bs_offscreens, m->offscreens.count,
       m->offscreen_blend_dirty);
-  psm__glue_mesh_dirty(m);
   psm__prof_tick(&s_prof, PSM__PROF_BLEND_MASKS);
 
   /* Parts (eager: small scalar work only). Part input opacities are
@@ -380,6 +429,9 @@ psm__update_model(struct psm__model *m)
    * Produces mesh_changed[] for the glue/reverse-y stages. */
   psm__enable_art_meshes(m);
   psm__gather_art_meshes(m);
+  /* glue->mesh dirty propagation: needs enable/deformer/part state (all ready
+   * here) and must finish before process_art_meshes reads glue_mesh_dirty. */
+  psm__glue_mesh_dirty(m);
   psm__process_art_meshes(m);
   psm__prof_tick(&s_prof, PSM__PROF_ART_MESHES);
 
