@@ -8,7 +8,9 @@
 #include <string.h>
 #include "private.h"
 #include "array.h"
+#include "blendshape.h"
 #include "debug.h"
+#include "interpolate.h"
 #include "moc3.h"
 #include "model.h"
 #include "offscreen.h"
@@ -132,6 +134,67 @@ psm__gather_offscreens(struct psm__model *m)
     }
   skip_color:
     off += b->max_blend;
+  }
+}
+
+/*
+ * Fused per-offscreen dirty stage (replaces the former batch
+ * interp_offscreens + blend_offscreens + the offscreen multiplication
+ * inside psm__apply_part_opacity).
+ *
+ * An offscreen surface is recomputed only when:
+ *   - its key data moved (binding idx/weight dirty), or
+ *   - a blend shape targeting it is dirty, or
+ *   - its enable state flipped.
+ *
+ * The owner-part multiplication (final opacity = key opacity *
+ * owner part opacity) is applied here on the freshly re-interpolated
+ * base. The offscreen enable mirrors its owner part's enable, so a
+ * part-chain flip (the only thing that can change the part opacity,
+ * since input opacities are static) shows up as an enable flip.
+ */
+PSM__DEF void
+psm__process_offscreens(struct psm__model *m)
+{
+  if (m->source->header->version < csmMocVersion_53)
+    return;
+
+  psm__i32 count = m->offscreens.count;
+  if (count <= 0)
+    return;
+
+  struct psm__sections *ms = m->source->sections;
+  psm__i32 *owner_idx = ms->offscreen_src.owner_idx;
+  struct psm__offscreen *surfaces = m->offscreens.surfaces;
+  bool *en = m->offscreens.enable;
+  psm__u8 *last_en = m->offscreen_last_enable;
+  psm__u8 *bsd = m->offscreen_blend_dirty;
+  psm__f32 *opa = m->offscreens.opacity;
+  psm__f32 *part_opa = m->parts.opacity;
+
+  for (psm__i32 i = 0; i < count; i++) {
+    if (!en[i]) {
+      last_en[i] = 0;
+      continue;
+    }
+
+    struct psm__binding *b = surfaces[i].binding;
+    psm__i32 self_dirty = b ? (b->idx_dirty || b->weight_dirty) : 1;
+    psm__i32 en_flip = (en[i] != (last_en[i] != 0));
+
+    if (!self_dirty && !bsd[i] && !en_flip) {
+      last_en[i] = 1;
+      continue;
+    }
+
+    psm__interp_offscreen_one(m, i);
+    psm__blend_offscreen_one(m, i);
+
+    psm__i32 owner = owner_idx ? owner_idx[i] : -1;
+    if (owner >= 0 && owner < m->parts.count)
+      opa[i] *= part_opa[owner];
+
+    last_en[i] = 1;
   }
 }
 

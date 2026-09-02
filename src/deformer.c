@@ -9,9 +9,11 @@
 #include <string.h>
 #include "private.h"
 #include "array.h"
+#include "blendshape.h"
 #include "debug.h"
 #include "deformer.h"
 #include "gather.h"
+#include "interpolate.h"
 #include "math2.h"
 #include "moc3.h"
 #include "model.h"
@@ -174,7 +176,7 @@ psm__interp_triangle(const struct psm__warp_cell *cell)
   }
 }
 
-static void
+PSM__DEF void
 psm__warp_transform(struct psm__model *m, psm__i32 di,
     const psm__f32 *inputs, psm__f32 *outputs, psm__i32 count)
 {
@@ -243,7 +245,7 @@ psm__warp_transform(struct psm__model *m, psm__i32 di,
   }
 }
 
-static void
+PSM__DEF void
 psm__rotation_transform(struct psm__model *m, psm__i32 di,
     const psm__f32 *inputs, psm__f32 *outputs, psm__i32 count)
 {
@@ -577,64 +579,80 @@ psm__gather_rotations(struct psm__model *m)
       &rk->mul_color, &rk->scr_color);
 }
 
+/*
+ * Fused per-deformer dirty stage (replaces the former batch
+ * interp_warps/interp_rotations + blend_warps/blend_rotations +
+ * apply_transforms sequence).
+ *
+ * Iterates in array order. MOC3 stores deformers in topological order
+ * (parents before children), so each deformer's parent is already in
+ * its final state when it is processed.
+ *
+ * A deformer is recomputed only when:
+ *   - its key data moved (binding idx/weight dirty), or
+ *   - a blend shape targeting it is dirty, or
+ *   - its enable state flipped (stale state may linger), or
+ *   - its parent deformer was recomputed this frame (its transform /
+ *     opacity / color changed, so the child must re-apply it).
+ *
+ * Clean deformers keep their previous frame's final state: the grid
+ * already holds the transformed positions, and d_opa/d_scl/colors keep
+ * their propagated values, so skipping is exact. Re-interpolating a
+ * clean deformer is idempotent (same key index/weight => same base),
+ * which also resets the in-place transformed grid before the parent
+ * transform is applied again when only the parent moved.
+ */
 PSM__DEF void
-psm__apply_transforms(struct psm__model *m)
+psm__process_deformers(struct psm__model *m)
 {
   psm__i32 count = m->deformers.count;
   if (count <= 0)
     return;
 
-  bool *en = m->deformers.enable;
-
   struct psm__deformer_node *nodes = m->deformers.nodes;
+  bool *en = m->deformers.enable;
+  psm__u8 *changed = m->deformer_changed;
+  psm__u8 *last_en = m->deformer_last_enable;
+  psm__u8 *wb = m->warp_blend_dirty;
+  psm__u8 *rb = m->rot_blend_dirty;
 
-  /*
-   * Iterate in array order. MOC3 stores deformers in
-   * topological order (parents before children), so each
-   * deformer's parent is already transformed.
-   */
   for (psm__i32 i = 0; i < count; i++) {
-    if (en[i]) {
-      switch (nodes[i].type) {
-      case PSM__DEFORMER_TYPE_WARP:
-        psm__apply_warp(m, i);
-        break;
-      case PSM__DEFORMER_TYPE_ROTATION:
-        psm__apply_rotation(m, i);
-        break;
-      }
+    struct psm__deformer_node *node = &nodes[i];
+    psm__i32 si = node->local_idx;
+    psm__i32 pi = node->parent_deformer_idx;
+    psm__i32 dt = node->type;
+    struct psm__binding *b = node->binding;
+
+    psm__i32 self_dirty = b ? (b->idx_dirty || b->weight_dirty) : 1;
+    psm__i32 bs_dirty = (dt == PSM__DEFORMER_TYPE_WARP) ? wb[si] : rb[si];
+    psm__i32 en_flip = (en[i] != (last_en[i] != 0));
+    psm__i32 upstream = (pi != -1) ? changed[pi] : 0;
+
+    if (!en[i]) {
+      /* Disabled: children/meshes of a disabled deformer are disabled
+       * too (enable propagation), so its stale state is never read. */
+      changed[i] = 0;
+      last_en[i] = 0;
+      continue;
     }
-  }
-}
 
-PSM__DEF void
-psm__apply_transforms_to_meshes(struct psm__model *m)
-{
-  psm__i32 count = m->art_meshes.count;
-  if (count <= 0)
-    return;
+    if (!self_dirty && !bs_dirty && !en_flip && !upstream) {
+      changed[i] = 0;
+      last_en[i] = 1;
+      continue;
+    }
 
-  struct psm__art_mesh      *am = m->art_meshes.meshes;
-  struct psm__deformer_node *dn = m->deformers.nodes;
-
-  psm__f32  *d_opa = m->deformers.opacity;
-  psm__f32 **cp = m->art_meshes.pos;
-  psm__f32  *am_opa = m->art_meshes.opacity;
-  bool      *en = m->art_meshes.enable;
-
-  for (psm__i32 i = 0; i < count; i++) {
-    if (!en[i]) continue;
-
-    psm__i32 pdi = am[i].parent_deformer_idx;
-    if (pdi == -1) continue;
-
-    psm__i32 vc = am[i].vertex_count;
-    am_opa[i] *= d_opa[pdi];
-
-    psm__i32 dt = dn[pdi].type;
-    if (dt == PSM__DEFORMER_TYPE_WARP)
-      psm__warp_transform(m, pdi, cp[i], cp[i], vc);
-    else
-      psm__rotation_transform(m, pdi, cp[i], cp[i], vc);
+    /* Base reset (idempotent) + blend contributions + parent transform. */
+    if (dt == PSM__DEFORMER_TYPE_WARP) {
+      psm__interp_warp_one(m, si);
+      psm__blend_warp_one(m, si);
+      psm__apply_warp(m, i);
+    } else {
+      psm__interp_rotation_one(m, si);
+      psm__blend_rotation_one(m, si);
+      psm__apply_rotation(m, i);
+    }
+    changed[i] = 1;
+    last_en[i] = 1;
   }
 }

@@ -70,6 +70,18 @@ psm__apply_glues(struct psm__model *m)
     if (!p0 || !p1)
       continue;
 
+    /* Dirty gate: the glue adds a stateful contribution on top of the
+     * meshes' current positions. Re-apply it only when the glue itself
+     * moved (intensity key data / blend shape) or one of its meshes was
+     * recomputed this frame (fresh pre-glue positions). When all three
+     * are clean the stored positions already include the previous
+     * glue contribution, so skipping is exact. */
+    struct psm__binding *b = glue->binding;
+    psm__i32 self_dirty = b ? (b->idx_dirty || b->weight_dirty) : 1;
+    if (!self_dirty && !m->glue_bs_dirty[gi] &&
+        !m->mesh_changed[m0] && !m->mesh_changed[m1])
+      continue;
+
     psm__f32 *wt = glue->weights;
     psm__u16 *pi = glue->pos_idx;
     if (!wt || !pi)

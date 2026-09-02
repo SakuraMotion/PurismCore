@@ -324,6 +324,21 @@ psm__alloc_model(struct psm__arena *arena, psm__u8 ver,
   psm__alloc_field(ak->scr_color.g, psm__f32, am_tmp_total);
   psm__alloc_field(ak->scr_color.b, psm__f32, am_tmp_total);
 
+  /* Dirty-update scratch (per-frame change tracking) */
+  psm__alloc_field(m->deformer_changed, psm__u8, cnt->deformers);
+  psm__alloc_field(m->deformer_last_enable, psm__u8, cnt->deformers);
+  psm__alloc_field(m->warp_blend_dirty, psm__u8, cnt->warps);
+  psm__alloc_field(m->rot_blend_dirty, psm__u8, cnt->rotations);
+  psm__alloc_field(m->mesh_changed, psm__u8, cnt->art_meshes);
+  psm__alloc_field(m->mesh_last_enable, psm__u8, cnt->art_meshes);
+  psm__alloc_field(m->mesh_blend_dirty, psm__u8, cnt->art_meshes);
+  psm__alloc_field(m->glue_mesh_dirty, psm__u8, cnt->art_meshes);
+  psm__alloc_field(m->glue_bs_dirty, psm__u8, cnt->glues);
+  psm__alloc_field(m->offscreen_last_enable, psm__u8, cnt->offscreens);
+  psm__alloc_field(m->offscreen_blend_dirty, psm__u8, cnt->offscreens);
+  psm__alloc_field(m->part_opa_dirty, psm__u8, cnt->parts);
+  psm__alloc_field(m->part_opa_prev, psm__f32, cnt->parts);
+
   /* Parameters */
   psm__alloc_field(m->params.items, struct psm__param, cnt->parameters);
   if (ver < csmMocVersion_42) {

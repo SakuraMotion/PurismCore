@@ -77,6 +77,11 @@ psm__apply_part_opacity(struct psm__model *m)
   bool     *enable = m->parts.enable;
   psm__f32 *input_opacity = m->parts.input_opacity,
            *part_opa = m->parts.opacity;
+  psm__u8  *opa_dirty = m->part_opa_dirty;
+  psm__f32 *opa_prev  = m->part_opa_prev;
+
+  if (opa_dirty)
+    memset(opa_dirty, 0, (size_t)count);
 
   for (psm__i32 i = 0; i < count; i++) {
     if (!enable[i])
@@ -91,10 +96,17 @@ psm__apply_part_opacity(struct psm__model *m)
       part_opa[i] = opacity;
     }
 
-    if (offscreen_indices[i] != -1) {
-      psm__i32 offscreen_idx = offscreen_indices[i];
-      m->offscreens.opacity[offscreen_idx] *= opacity;
+    /* Track effective-opacity changes so dependent art meshes (final
+     * opacity = mesh opacity * this part's effective opacity) are forced to
+     * recompute when the user changes a part opacity via the UI. */
+    if (opa_dirty) {
+      opa_dirty[i] = (opacity != opa_prev[i]);
+      opa_prev[i]  = opacity;
     }
+
+    /* The owner-part multiplication for offscreen surfaces moved to the
+     * fused psm__process_offscreens dirty stage (it must run on the
+     * freshly re-interpolated offscreen opacity base). */
   }
 }
 

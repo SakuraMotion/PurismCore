@@ -386,7 +386,31 @@ struct psm__model {
   bool                          force_update;
   bool                          y_reversed;
   /* csmGetLastError: code from the most recent update */
-  psm__i32 last_error;
+  psm__i32                      last_error;
+
+  /* Dirty-update scratch (per-frame, allocated at load time):
+   * _changed       = object's final state was recomputed this frame
+   * _last_enable   = previous frame's enable snapshot (flip => force recompute)
+   * *_blend_dirty  = a blend shape targeting the object is dirty this frame
+   * glue_mesh_dirty= a dirty glue involves this art mesh */
+  psm__u8                      *deformer_changed;
+  psm__u8                      *deformer_last_enable;
+  psm__u8                      *warp_blend_dirty;
+  psm__u8                      *rot_blend_dirty;
+  psm__u8                      *mesh_changed;
+  psm__u8                      *mesh_last_enable;
+  psm__u8                      *mesh_blend_dirty;
+  psm__u8                      *glue_mesh_dirty;
+  psm__u8                      *glue_bs_dirty;
+  psm__u8                      *offscreen_last_enable;
+  psm__u8                      *offscreen_blend_dirty;
+  /* Part effective-opacity change tracking (per part): part_opa_dirty[i] is
+   * set when part i's effective opacity differs from the previous frame, so
+   * art meshes whose parent part is i are forced to recompute (their final
+   * opacity = mesh opacity * part effective opacity would otherwise stay
+   * stale when the user changes a part opacity while the mesh is clean). */
+  psm__u8                      *part_opa_dirty;
+  psm__f32                     *part_opa_prev;
 };
 
 #endif /* PSM__MODEL_H */
